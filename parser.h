@@ -55,14 +55,36 @@ extern int yydebug;
     YYerror = 256,                 /* error  */
     YYUNDEF = 257,                 /* "invalid token"  */
     NUM = 258,                     /* NUM  */
-    IDENT = 259,                   /* IDENT  */
-    INT = 260,                     /* INT  */
-    IF = 261,                      /* IF  */
-    ELSE = 262,                    /* ELSE  */
-    RETURN = 263,                  /* RETURN  */
-    IF_PREC = 264,                 /* IF_PREC  */
-    UNARY_OP = 265,                /* UNARY_OP  */
-    PLUS = 266                     /* PLUS  */
+    REAL_LITERAL = 259,            /* REAL_LITERAL  */
+    IDENT = 260,                   /* IDENT  */
+    PROGRAM = 261,                 /* PROGRAM  */
+    VAR = 262,                     /* VAR  */
+    INTEGER_TYPE = 263,            /* INTEGER_TYPE  */
+    REAL_TYPE = 264,               /* REAL_TYPE  */
+    FUNCTION = 265,                /* FUNCTION  */
+    PROCEDURE = 266,               /* PROCEDURE  */
+    WHILE = 267,                   /* WHILE  */
+    DO = 268,                      /* DO  */
+    BEGIN_TOKEN = 269,             /* BEGIN_TOKEN  */
+    END_TOKEN = 270,               /* END_TOKEN  */
+    IF = 271,                      /* IF  */
+    THEN = 272,                    /* THEN  */
+    ELSE = 273,                    /* ELSE  */
+    ARRAY = 274,                   /* ARRAY  */
+    OF = 275,                      /* OF  */
+    DIV_OP = 276,                  /* DIV_OP  */
+    NOT_OP = 277,                  /* NOT_OP  */
+    OR_OP = 278,                   /* OR_OP  */
+    AND_OP = 279,                  /* AND_OP  */
+    ASSIGN_OP = 280,               /* ASSIGN_OP  */
+    EQ_OP = 281,                   /* EQ_OP  */
+    NEQ_OP = 282,                  /* NEQ_OP  */
+    LT_OP = 283,                   /* LT_OP  */
+    LTE_OP = 284,                  /* LTE_OP  */
+    GT_OP = 285,                   /* GT_OP  */
+    GTE_OP = 286,                  /* GTE_OP  */
+    IF_PREC = 287,                 /* IF_PREC  */
+    UNARY_OP = 288                 /* UNARY_OP  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -71,7 +93,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 13 "parser.y"
+#line 17 "parser.y"
 
     Func *tFunc;
     Args *tArgs;
@@ -79,11 +101,12 @@ union YYSTYPE
     Expr *tExpr;
     Stmts *tStmts;
     Stmt *tStmt;
-    Num *tNum;
-    Ident *tIdent;
-    int tInt;
+    Num *tNum;         // For integer literals (e.g., 123)
+    RealLit *realLit;  // For real literals (e.g., 3.14) (NEW)
+    Ident *tIdent;     // For identifiers
+    int tInt;          // For type specifiers (e.g., an enum for integer, real)
 
-#line 87 "parser.h"
+#line 110 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

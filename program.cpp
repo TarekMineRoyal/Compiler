@@ -8,7 +8,10 @@ extern Func* root;
 
 
 int main(int argc, char *argv[]) {
-    yydebug = 1;  // Enable debug if needed
-    yyparse();
+    while (true) {
+        yydebug = 0;  // Enable debug if needed
+        yyparse();
+    }
+    
     return 0;
 }

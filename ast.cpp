@@ -1,126 +1,97 @@
 #include "ast.h"
-#include <iostream>
+#include <iostream> // For potential debugging, not strictly necessary for all AST nodes
 
+Node::Node(int l, int c) : line(l), column(c), father(nullptr) {}
 
-Node::Node(int line, int column)
-{
-    this->line = line;
-    this->column = column;
-    this->father = NULL;
+Expr::Expr(int l, int c) : Node(l, c) {}
+
+Func::Func(int t, Ident* n, Args* as, Stmts* slist, int l, int c)
+    : Node(l, c), type(t), name(n), args(as), stmts(slist) {
+    if (name) name->father = this;
+    if (args) args->father = this;
+    if (stmts) stmts->father = this;
 }
 
-Func::Func(int t, Ident *n, Args *as, Stmts *ss, int l, int c) : Node(l, c)
-    {
-        this->type= t;
-        this->name = n;
-        this->args = as;
-        this->stmts = ss;
-        // t->father = this;/
-
-        n->father = this;
-
-        as->father = this;
-    // ss->father = this;
+Arg::Arg(int t, Ident* n, int l, int c)
+    : Node(l, c), type(t), name(n) {
+    if (name) name->father = this;
 }
 
-
-Arg::Arg(int t, Ident *n, int l, int c) : Node(l, c)
-{
-    this->type= t;
-    this->name = n;
-    // t->father = this;
-    n->father = this;
+Args::Args(int l, int c) : Node(l, c) {
+    args_list = new std::vector<Arg*>;
 }
 
-Args::Args(int l, int c) : Node(l, c)
-{
-    this->args = new std::vector<Arg *>;
-}
-Args::Args(Arg *a, int l, int c) : Node(l, c)
-{
-    this->args = new std::vector<Arg *>;
-    this->AddArg(a);
-}
-void Args::AddArg(Arg *a)
-{
-    this->args->push_back(a);
-    a->father = this;
-}
-
-Stmt::Stmt(int l, int c) : Node(l, c)
-{
-    this->next = NULL;
-    this->prev = NULL;
-}
-
-Stmts::Stmts(int l, int c) : Node(l, c)
-{
-    this->stmts = NULL;
-}
-Stmts::Stmts(Stmt *s, int l, int c) : Node(l, c)
-{
-    this->stmts = NULL;
-    this->AddStmt(s);
-}
-
-void Stmts::AddStmt(Stmt *s){
-    if(this->stmts == NULL)
-    {
-        this->stmts = s;
+Args::Args(Arg* first_arg, int l, int c) : Node(l, c) {
+    args_list = new std::vector<Arg*>;
+    if (first_arg) {
+        AddArg(first_arg);
     }
-    else
-    {
-        Stmt *p;
-        p = this->stmts;
-        while(p->next != NULL)
+}
+
+void Args::AddArg(Arg* arg) {
+    if (arg) {
+        args_list->push_back(arg);
+        arg->father = this;
+    }
+}
+
+Stmt::Stmt(int l, int c) : Node(l, c), prev(nullptr), next(nullptr) {}
+
+Stmts::Stmts(int l, int c) : Node(l, c), stmts_list(nullptr) {}
+
+Stmts::Stmts(Stmt* first_stmt, int l, int c) : Node(l, c), stmts_list(nullptr) {
+    if (first_stmt) {
+        AddStmt(first_stmt);
+    }
+}
+
+void Stmts::AddStmt(Stmt* s) {
+    if (!s) return;
+    s->father = this;
+    if (stmts_list == nullptr) {
+        stmts_list = s;
+        s->prev = nullptr;
+        s->next = nullptr;
+    }
+    else {
+        Stmt* p = stmts_list;
+        while (p->next != nullptr) {
             p = p->next;
+        }
         p->next = s;
         s->prev = p;
-        s->father = this;
+        s->next = nullptr;
     }
 }
 
-VarDecl::VarDecl(int t, Ident* i, int l, int c) : Stmt(l, c)
-{
-    this->type = t;
-    this->ident = i;
-    ident->father = this;
+VarDecl::VarDecl(int t, Ident* i, int l, int c) : Stmt(l, c), type(t), ident(i) {
+    if (ident) ident->father = this;
 }
 
-Ident::Ident(std::string n, int l, int c) : Node(l, c)
-{
-    this->name = n;
+Ident::Ident(const std::string& n, int l, int c) : Node(l, c), name(n) {}
+
+// Constructor for Num was Num(int, int, int) -> Num(value, line, col)
+// User's old one: Num::Num(int l, int c, int v) : Expr(l, c) { this->value = v;}
+// This means line, col, value. Let's stick to value, line, col for consistency.
+Num::Num(int val, int l, int c) : Expr(l, c), value(val) {}
+
+// New RealLit implementation
+RealLit::RealLit(double val, int l, int c) : Expr(l, c), value(val) {}
+
+Minus::Minus(Expr* e, int l, int c) : Expr(l, c), expr(e) {
+    if (expr) expr->father = this;
 }
 
-Expr::Expr(int l, int c) : Node(l, c)
-{
-}
-Num::Num(int l, int c, int v) : Expr(l, c)
-{
-    this->value = v;
-}
-Minus::Minus(Expr *e,int l, int c) : Expr(l, c)
-{
-    this->expr = e;
-    e->father = this;
+IdExpr::IdExpr(Ident* id, int l, int c) : Expr(l, c), ident(id) {
+    if (ident) ident->father = this;
 }
 
-IdExpr::IdExpr(Ident *id,int l, int c) : Expr(l, c)
-{
-    this->ident = id;
+Assign::Assign(Ident* i, Expr* e, int l, int c) : Stmt(l, c), ident(i), expr_val(e) {
+    if (ident) ident->father = this;
+    if (expr_val) expr_val->father = this;
 }
 
-// Assign::Assign(){
-
-// }
-Add::Add(Expr *e1, Expr *e2, int l, int c) : Expr(l, c)
-{
-    this->left = e1;
-    this->right = e2;
-}
-
-Assign::Assign(Ident * i  , Expr * e, int l , int  c) : Stmt(l,c)
-{
-    this->ident =i;
-    this->exp = e;
+Add::Add(Expr* e1, Expr* e2, int l, int c) : Expr(l, c), left(e1), right(e2) {
+    if (left) left->father = this;
+    if (right) right->father = this;
 }
