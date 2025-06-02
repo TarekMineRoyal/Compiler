@@ -1,0 +1,47 @@
+# Visual Studio and C++ specific
+*.VC.db
+*.VC.VC.opendb
+*.ncb
+*.suo
+*.pdb
+*.ilk
+*.exp
+*.aps
+*.vcxproj.user
+*.vcxproj.filters # Often user-specific, but can be shared if consistent across team
+
+# Build output directories
+x64/
+Debug/
+Release/
+Win32/ # If you build for 32-bit
+obj/
+bin/
+
+# Executables and libraries
+*.exe
+*.dll
+*.lib
+*.so # For Linux if you cross-compile or share
+*.o
+*.obj
+
+# Generated files from your project
+my_compiler.exe
+parser.output
+
+# Other common ignores
+*.log
+*.tmp
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Personal editor/IDE folders (if not already covered by .vs)
+# .idea/
+# .vscode/
+
+# Ignore the .vs directory (Visual Studio IDE files)
+.vs/
