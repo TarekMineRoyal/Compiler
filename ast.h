@@ -3,129 +3,303 @@
 
 #include <vector>
 #include <string>
-//using namespace std; // It's generally better to qualify std:: or use 'using' in .cpp files / specific scopes
+#include <list> 
 
-class Node;
-class Func;
-// class Type; // Not used as a class in your example, 'type' in parser refers to int
-class Ident;
-class Args;
-class Arg; // Added for completeness, was in your original parser %type
-class Stmt;
-class Stmts;
-class Expr; // Added for completeness, base for Num, RealLit, etc.
-class Num; // Your existing class for integer literals
-class RealLit; // New class for real literals
-class VarDecl;
-class IdExpr; // From your original parser
-class Assign; // From your original parser
-class Minus;  // From your original parser
-class Add;    // From your original parser
-
-
+// --- Base Node Class (Define early as it's widely used) ---
 class Node {
 public:
     int line;
     int column;
-    Node* father; // Optional: consider if all nodes need a father pointer immediately
+    Node* father;
     Node(int l, int c);
-    virtual ~Node() {} // Good practice to have a virtual destructor for base classes
+    virtual ~Node() {}
 };
 
-class Expr : public Node { // Base class for all expressions
+// --- Lexer Helper Original Classes (Full definitions needed by parser.y actions for $1, etc.) ---
+// These are the types the lexer creates. The parser will access their members.
+class Expr : public Node { // Your original Expr, used by Num and RealLit
 public:
     Expr(int l, int c);
-    // virtual void accept(Visitor* v) = 0; // Example for visitor pattern
-};
-
-class Func : public Node {
-public:
-    int type; // You used 'int' for type, consider an enum or a Type class later
-    Ident* name;
-    Args* args;
-    Stmts* stmts;
-    Func(int type, Ident* name, Args* args, Stmts* stmts, int l, int c);
-};
-
-class Arg : public Node {
-public:
-    int type; // Again, 'int' for type
-    Ident* name;
-    Arg(int type, Ident* name, int l, int c);
-};
-
-class Args : public Node {
-public:
-    std::vector<Arg*>* args_list; // Renamed to avoid conflict with class name, was 'args'
-    Args(int l, int c);
-    Args(Arg* first_arg, int l, int c);
-    void AddArg(Arg* arg);
-};
-
-class Stmt : public Node { // Base class for all statements
-public:
-    Stmt* prev; // For linked list of statements in Stmts
-    Stmt* next; // For linked list of statements in Stmts
-    Stmt(int l, int c);
-};
-
-class Stmts : public Node {
-public:
-    Stmt* stmts_list; // Head of the linked list, was 'stmts'
-    Stmts(int l, int c);
-    Stmts(Stmt* first_stmt, int l, int c);
-    void AddStmt(Stmt* stmt);
-};
-
-class VarDecl : public Stmt {
-public:
-    int type;
-    Ident* ident;
-    VarDecl(int type, Ident* i, int l, int c);
 };
 
 class Ident : public Node {
 public:
     std::string name;
-    Ident(const std::string& n, int l, int c); // Pass string by const reference
+    Ident(const std::string& n, int l, int c);
 };
 
-class Num : public Expr { // For Integer Literals
+class Num : public Expr {
 public:
     int value;
-    Num(int val, int l, int c); // Changed constructor for clarity: value, line, column
+    Num(int val, int l, int c);
 };
 
-class RealLit : public Expr { // For Real Literals (NEW)
+class RealLit : public Expr {
 public:
     double value;
     RealLit(double val, int l, int c);
 };
 
-class Minus : public Expr {
+// --- FORWARD DECLARATIONS for main AST structure nodes ---
+class ExprNode;
+class StatementNode;
+class TypeNode;
+class IdentNode;
+class Declarations;
+class VarDecl;
+class StandardTypeNode;
+class ArrayTypeNode;
+class SubprogramDeclarations;
+class SubprogramDeclaration;
+class SubprogramHead;
+class FunctionHeadNode;
+class ProcedureHeadNode;
+class ArgumentsNode;
+class ParameterList;
+class ParameterDeclaration;
+class CompoundStatementNode;
+class StatementList;
+class AssignStatementNode;
+class IfStatementNode;
+class WhileStatementNode;
+class VariableNode;
+class ProcedureCallStatementNode;
+class ExpressionList;
+class IntNumNode;
+class RealNumNode;
+class BooleanLiteralNode;
+class BinaryOpNode;
+class UnaryOpNode;
+class IdExprNode;
+class FunctionCallExprNode;
+class ProgramNode;
+
+
+// --- BASE AST NODE CLASSES (after Node is defined) ---
+class ExprNode : public Node {
 public:
-    Expr* expr;
-    Minus(Expr* e, int l, int c);
+    ExprNode(int l, int c);
 };
 
-class IdExpr : public Expr {
+class StatementNode : public Node {
 public:
-    Ident* ident;
-    IdExpr(Ident* id, int l, int c);
+    StatementNode(int l, int c);
 };
 
-class Assign : public Stmt {
+class TypeNode : public Node {
 public:
-    Ident* ident;
-    Expr* expr_val; // Renamed from 'exp' to be more descriptive
-    Assign(Ident* i, Expr* e, int l, int c);
+    TypeNode(int l, int c);
 };
 
-class Add : public Expr {
+// --- SPECIFIC AST NODE DECLARATIONS (Full Definitions) ---
+
+class IdentNode : public ExprNode {
 public:
-    Expr* left;
-    Expr* right;
-    Add(Expr* e1, Expr* e2, int l, int c);
+    std::string name;
+    IdentNode(const std::string& n, int l, int c);
+};
+
+class IntNumNode : public ExprNode {
+public:
+    int value;
+    IntNumNode(int val, int l, int c);
+};
+
+class RealNumNode : public ExprNode {
+public:
+    double value;
+    RealNumNode(double val, int l, int c);
+};
+
+class BooleanLiteralNode : public ExprNode {
+public:
+    bool value;
+    BooleanLiteralNode(bool val, int l, int c);
+};
+
+class IdentifierList : public Node {
+public:
+    std::list<IdentNode*> identifiers;
+    IdentifierList(IdentNode* firstIdent, int l, int c);
+    void addIdentifier(IdentNode* ident);
+};
+
+class StandardTypeNode : public TypeNode {
+public:
+    enum TypeCategory { TYPE_INTEGER, TYPE_REAL, TYPE_BOOLEAN };
+    TypeCategory category;
+    StandardTypeNode(TypeCategory cat, int l, int c);
+};
+
+class ArrayTypeNode : public TypeNode {
+public:
+    IntNumNode* startIndex;
+    IntNumNode* endIndex;
+    StandardTypeNode* elementType;
+    ArrayTypeNode(IntNumNode* start, IntNumNode* end, StandardTypeNode* elemType, int l, int c);
+};
+
+class VarDecl : public StatementNode {
+public:
+    IdentifierList* identifiers;
+    TypeNode* type;
+    VarDecl(IdentifierList* ids, TypeNode* t, int l, int c);
+};
+
+class Declarations : public Node {
+public:
+    std::list<VarDecl*> var_decl_items;
+    Declarations(int l, int c);
+    void addVarDecl(VarDecl* vd); // Declaration for the method
+};
+
+class ExpressionList : public Node {
+public:
+    std::list<ExprNode*> expressions;
+    ExpressionList(int l, int c);
+    ExpressionList(ExprNode* firstExpr, int l, int c);
+    void addExpression(ExprNode* expr);
+};
+
+class ParameterDeclaration : public Node {
+public:
+    IdentifierList* ids;
+    TypeNode* type;
+    ParameterDeclaration(IdentifierList* idList, TypeNode* t, int l, int c);
+};
+
+class ParameterList : public Node {
+public:
+    std::list<ParameterDeclaration*> paramDeclarations;
+    ParameterList(ParameterDeclaration* firstParamDecl, int l, int c);
+    void addParameterDeclarationGroup(ParameterDeclaration* paramDecl);
+};
+
+class ArgumentsNode : public Node {
+public:
+    ParameterList* params;
+    ArgumentsNode(int l, int c);
+    ArgumentsNode(ParameterList* pList, int l, int c);
+};
+
+class SubprogramHead : public Node {
+public:
+    IdentNode* name;
+    ArgumentsNode* arguments;
+    SubprogramHead(IdentNode* n, ArgumentsNode* args, int l, int c);
+    virtual ~SubprogramHead() {}
+};
+
+class FunctionHeadNode : public SubprogramHead {
+public:
+    StandardTypeNode* returnType;
+    FunctionHeadNode(IdentNode* n, ArgumentsNode* args, StandardTypeNode* retType, int l, int c);
+};
+
+class ProcedureHeadNode : public SubprogramHead {
+public:
+    ProcedureHeadNode(IdentNode* n, ArgumentsNode* args, int l, int c);
+};
+
+class StatementList : public Node {
+public:
+    std::list<StatementNode*> statements;
+    StatementList(int l, int c);
+    StatementList(StatementNode* firstStmt, int l, int c);
+    void addStatement(StatementNode* stmt);
+};
+
+class CompoundStatementNode : public StatementNode {
+public:
+    StatementList* stmts;
+    CompoundStatementNode(StatementList* sList, int l, int c);
+};
+
+class SubprogramDeclaration : public Node {
+public:
+    SubprogramHead* head;
+    CompoundStatementNode* body;
+    SubprogramDeclaration(SubprogramHead* h, CompoundStatementNode* b, int l, int c);
+};
+
+class SubprogramDeclarations : public Node {
+public:
+    std::list<SubprogramDeclaration*> subprograms;
+    SubprogramDeclarations(int l, int c);
+    void addSubprogramDeclaration(SubprogramDeclaration* subprog);
+};
+
+class VariableNode : public ExprNode {
+public:
+    IdentNode* identifier;
+    ExprNode* index;
+    VariableNode(IdentNode* id, ExprNode* idx, int l, int c);
+};
+
+class AssignStatementNode : public StatementNode {
+public:
+    VariableNode* variable;
+    ExprNode* expression;
+    AssignStatementNode(VariableNode* var, ExprNode* expr, int l, int c);
+};
+
+class IfStatementNode : public StatementNode {
+public:
+    ExprNode* condition;
+    StatementNode* thenStatement;
+    StatementNode* elseStatement;
+    IfStatementNode(ExprNode* cond, StatementNode* thenStmt, StatementNode* elseStmt, int l, int c);
+};
+
+class WhileStatementNode : public StatementNode {
+public:
+    ExprNode* condition;
+    StatementNode* body;
+    WhileStatementNode(ExprNode* cond, StatementNode* b, int l, int c);
+};
+
+class ProcedureCallStatementNode : public StatementNode {
+public:
+    IdentNode* procName;
+    ExpressionList* arguments;
+    ProcedureCallStatementNode(IdentNode* name, ExpressionList* args, int l, int c);
+};
+
+class IdExprNode : public ExprNode {
+public:
+    IdentNode* ident;
+    IdExprNode(IdentNode* id, int l, int c);
+};
+
+class FunctionCallExprNode : public ExprNode {
+public:
+    IdentNode* funcName;
+    ExpressionList* arguments;
+    FunctionCallExprNode(IdentNode* name, ExpressionList* args, int l, int c);
+};
+
+class BinaryOpNode : public ExprNode {
+public:
+    ExprNode* left;
+    std::string op;
+    ExprNode* right;
+    BinaryOpNode(ExprNode* l_node, const std::string& oper, ExprNode* r_node, int l, int c);
+};
+
+class UnaryOpNode : public ExprNode {
+public:
+    std::string op;
+    ExprNode* expression;
+    UnaryOpNode(const std::string& oper, ExprNode* expr, int l, int c);
+};
+
+class ProgramNode : public Node {
+public:
+    IdentNode* progName;
+    Declarations* decls;
+    SubprogramDeclarations* subprogs;
+    CompoundStatementNode* mainCompoundStmt;
+    ProgramNode(IdentNode* name, Declarations* d, SubprogramDeclarations* s, CompoundStatementNode* cStmt, int l, int c);
 };
 
 #endif // AST_H

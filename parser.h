@@ -57,34 +57,37 @@ extern int yydebug;
     NUM = 258,                     /* NUM  */
     REAL_LITERAL = 259,            /* REAL_LITERAL  */
     IDENT = 260,                   /* IDENT  */
-    PROGRAM = 261,                 /* PROGRAM  */
-    VAR = 262,                     /* VAR  */
-    INTEGER_TYPE = 263,            /* INTEGER_TYPE  */
-    REAL_TYPE = 264,               /* REAL_TYPE  */
-    FUNCTION = 265,                /* FUNCTION  */
-    PROCEDURE = 266,               /* PROCEDURE  */
-    WHILE = 267,                   /* WHILE  */
-    DO = 268,                      /* DO  */
-    BEGIN_TOKEN = 269,             /* BEGIN_TOKEN  */
-    END_TOKEN = 270,               /* END_TOKEN  */
-    IF = 271,                      /* IF  */
-    THEN = 272,                    /* THEN  */
-    ELSE = 273,                    /* ELSE  */
-    ARRAY = 274,                   /* ARRAY  */
-    OF = 275,                      /* OF  */
-    DIV_OP = 276,                  /* DIV_OP  */
-    NOT_OP = 277,                  /* NOT_OP  */
-    OR_OP = 278,                   /* OR_OP  */
-    AND_OP = 279,                  /* AND_OP  */
-    ASSIGN_OP = 280,               /* ASSIGN_OP  */
-    EQ_OP = 281,                   /* EQ_OP  */
-    NEQ_OP = 282,                  /* NEQ_OP  */
-    LT_OP = 283,                   /* LT_OP  */
-    LTE_OP = 284,                  /* LTE_OP  */
-    GT_OP = 285,                   /* GT_OP  */
-    GTE_OP = 286,                  /* GTE_OP  */
-    IF_PREC = 287,                 /* IF_PREC  */
-    UNARY_OP = 288                 /* UNARY_OP  */
+    TRUE_KEYWORD = 261,            /* TRUE_KEYWORD  */
+    FALSE_KEYWORD = 262,           /* FALSE_KEYWORD  */
+    PROGRAM = 263,                 /* PROGRAM  */
+    VAR = 264,                     /* VAR  */
+    ARRAY = 265,                   /* ARRAY  */
+    OF = 266,                      /* OF  */
+    INTEGER_TYPE = 267,            /* INTEGER_TYPE  */
+    REAL_TYPE = 268,               /* REAL_TYPE  */
+    BOOLEAN_TYPE = 269,            /* BOOLEAN_TYPE  */
+    FUNCTION = 270,                /* FUNCTION  */
+    PROCEDURE = 271,               /* PROCEDURE  */
+    BEGIN_TOKEN = 272,             /* BEGIN_TOKEN  */
+    END_TOKEN = 273,               /* END_TOKEN  */
+    IF = 274,                      /* IF  */
+    THEN = 275,                    /* THEN  */
+    ELSE = 276,                    /* ELSE  */
+    WHILE = 277,                   /* WHILE  */
+    DO = 278,                      /* DO  */
+    NOT_OP = 279,                  /* NOT_OP  */
+    AND_OP = 280,                  /* AND_OP  */
+    OR_OP = 281,                   /* OR_OP  */
+    DIV_OP = 282,                  /* DIV_OP  */
+    ASSIGN_OP = 283,               /* ASSIGN_OP  */
+    EQ_OP = 284,                   /* EQ_OP  */
+    NEQ_OP = 285,                  /* NEQ_OP  */
+    LT_OP = 286,                   /* LT_OP  */
+    LTE_OP = 287,                  /* LTE_OP  */
+    GT_OP = 288,                   /* GT_OP  */
+    GTE_OP = 289,                  /* GTE_OP  */
+    DOTDOT = 290,                  /* DOTDOT  */
+    UMINUS = 291                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -93,20 +96,42 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 17 "parser.y"
+#line 18 "parser.y"
 
-    Func *tFunc;
-    Args *tArgs;
-    Arg *tArg;
-    Expr *tExpr;
-    Stmts *tStmts;
-    Stmt *tStmt;
-    Num *tNum;         // For integer literals (e.g., 123)
-    RealLit *realLit;  // For real literals (e.g., 3.14) (NEW)
-    Ident *tIdent;     // For identifiers
-    int tInt;          // For type specifiers (e.g., an enum for integer, real)
+    Node* pNode; 
+    ProgramNode* pProgramNode;
+    IdentifierList* pIdentifierList;
+    IdentNode* pIdentNode; 
+    Declarations* pDeclarations;
+    VarDecl* pVarDecl;
+    TypeNode* pTypeNode;
+    StandardTypeNode* pStandardTypeNode;
+    ArrayTypeNode* pArrayTypeNode;
+    SubprogramDeclarations* pSubprogramDeclarations;
+    SubprogramDeclaration* pSubprogramDeclaration;
+    SubprogramHead* pSubprogramHead;
+    ArgumentsNode* pArgumentsNode; 
+    ParameterList* pParameterList;
+    ParameterDeclaration* pParameterDeclaration;
+    CompoundStatementNode* pCompoundStatementNode;
+    StatementList* pStatementList;
+    StatementNode* pStatementNode;
+    VariableNode* pVariableNode;
+    ProcedureCallStatementNode* pProcedureCallStatementNode;
+    ExprNode* pExprNode;       
+    ExpressionList* pExpressionList;
+    IntNumNode* pIntNumNode;
+    RealNumNode* pRealNumNode;
+    BooleanLiteralNode* pBooleanLiteralNode;
 
-#line 110 "parser.h"
+    Num* rawNum;
+    RealLit* rawRealLit;
+    Ident* rawIdent;
+
+    int token_val;
+    char* str_val;
+
+#line 135 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

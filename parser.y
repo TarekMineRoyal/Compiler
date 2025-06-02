@@ -1,197 +1,311 @@
 %{
-    #include "ast.h"
-    #include <iostream>
-    // using std::endl; // Already in your original file
-    // using std::cout; // Already in your original file
-    extern int yylex();
-    extern int yyerror(const char*); // yyerror is defined at the bottom of this file
-    extern int yydebug;
+#include "ast.h" 
+#include <iostream>
+#include <string>
+#include <vector>
+#include <list>
 
-    // lin and col are defined in lexer.l and used here for AST node creation and error reporting
-    extern int lin;
-    extern int col;
+extern int yylex();
+extern int yyerror(const char*);
+extern int yydebug;
 
-    Func *root; // Root of the AST
+extern int lin;
+extern int col;
+
+ProgramNode *root_ast_node; 
 %}
 
 %union {
-    Func *tFunc;
-    Args *tArgs;
-    Arg *tArg;
-    Expr *tExpr;
-    Stmts *tStmts;
-    Stmt *tStmt;
-    Num *tNum;         // For integer literals (e.g., 123)
-    RealLit *realLit;  // For real literals (e.g., 3.14) (NEW)
-    Ident *tIdent;     // For identifiers
-    int tInt;          // For type specifiers (e.g., an enum for integer, real)
+    Node* pNode; 
+    ProgramNode* pProgramNode;
+    IdentifierList* pIdentifierList;
+    IdentNode* pIdentNode; 
+    Declarations* pDeclarations;
+    VarDecl* pVarDecl;
+    TypeNode* pTypeNode;
+    StandardTypeNode* pStandardTypeNode;
+    ArrayTypeNode* pArrayTypeNode;
+    SubprogramDeclarations* pSubprogramDeclarations;
+    SubprogramDeclaration* pSubprogramDeclaration;
+    SubprogramHead* pSubprogramHead;
+    ArgumentsNode* pArgumentsNode; 
+    ParameterList* pParameterList;
+    ParameterDeclaration* pParameterDeclaration;
+    CompoundStatementNode* pCompoundStatementNode;
+    StatementList* pStatementList;
+    StatementNode* pStatementNode;
+    VariableNode* pVariableNode;
+    ProcedureCallStatementNode* pProcedureCallStatementNode;
+    ExprNode* pExprNode;       
+    ExpressionList* pExpressionList;
+    IntNumNode* pIntNumNode;
+    RealNumNode* pRealNumNode;
+    BooleanLiteralNode* pBooleanLiteralNode;
+
+    Num* rawNum;
+    RealLit* rawRealLit;
+    Ident* rawIdent;
+
+    int token_val;
+    char* str_val;
 }
 
-/* Token declarations */
-%token <tNum> NUM                // Integer literal (e.g., 123)
-%token <realLit> REAL_LITERAL   // Real literal (e.g., 1.23, 4E-2) (NEW)
-%token <tIdent> IDENT            // Identifier
+%token <rawNum> NUM
+%token <rawRealLit> REAL_LITERAL
+%token <rawIdent> IDENT
+%token TRUE_KEYWORD FALSE_KEYWORD
+%token PROGRAM VAR ARRAY OF INTEGER_TYPE REAL_TYPE BOOLEAN_TYPE FUNCTION PROCEDURE
+%token BEGIN_TOKEN END_TOKEN IF THEN ELSE WHILE DO NOT_OP AND_OP OR_OP DIV_OP
+%token ASSIGN_OP EQ_OP NEQ_OP LT_OP LTE_OP GT_OP GTE_OP DOTDOT 
 
-/* MiniPascal Keywords (NEW) */
-%token PROGRAM VAR INTEGER_TYPE REAL_TYPE FUNCTION PROCEDURE
-%token WHILE DO BEGIN_TOKEN END_TOKEN IF THEN ELSE ARRAY OF
-%token DIV_OP NOT_OP OR_OP AND_OP
+%type <pProgramNode> program_rule
+%type <pIdentifierList> identifier_list
+%type <pIdentNode> id_node 
+%type <pDeclarations> declarations var_declaration_list_non_empty 
+%type <pVarDecl> var_declaration_item 
+%type <pTypeNode> type
+%type <pStandardTypeNode> standard_type
+%type <pIntNumNode> int_num_node
+%type <pRealNumNode> real_num_node
+%type <pSubprogramDeclarations> subprogram_declarations 
+%type <pSubprogramDeclaration> subprogram_declaration_block 
+%type <pSubprogramDeclaration> subprogram_declaration
+%type <pSubprogramHead> subprogram_head
+%type <pArgumentsNode> arguments 
+%type <pParameterList> parameter_list 
+%type <pParameterDeclaration> parameter_declaration_group 
+%type <pCompoundStatementNode> compound_statement
+%type <pStatementList> optional_statements statement_list statement_list_terminated // Added statement_list_terminated here
+%type <pStatementNode> statement
+%type <pVariableNode> variable
+%type <pProcedureCallStatementNode> procedure_statement
+%type <pExpressionList> expression_list
+%type <pExprNode> expression simple_expression term factor primary 
 
-/* Multi-character operators and other punctuation (NEW or revised) */
-%token ASSIGN_OP  /* := */
-%token EQ_OP      /* =  (equality comparison) */
-%token NEQ_OP     /* <> */
-%token LT_OP      /* <  */
-%token LTE_OP     /* <= */
-%token GT_OP      /* >  */
-%token GTE_OP     /* >= */
+%left OR_OP
+%left AND_OP
+%right NOT_OP 
+%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP
+%left '+' '-' 
+%left '*' '/' DIV_OP 
+%right UMINUS 
+%nonassoc THEN
+%nonassoc ELSE 
 
-/* Tokens from your C-style example (IF, ELSE are also keywords) */
-/* %token RETURN */ /* RETURN is not in MiniPascal keyword list, remove if not needed */
+%start program_rule
 
-/* Type specifiers for non-terminals */
-%type <tFunc> func
-%type <tArgs> args args_e
-%type <tArg> arg
-%type <tStmts> stmts /* Note: your old grammar had stmts', ensure consistency or pick one */
-%type <tStmt> stmt
-%type <tExpr> expr
-%type <tInt> type  /* This 'type' non-terminal resolves to an integer representing the type */
+%% 
 
-/* Operator Precedence and Associativity (from your C-style example, may need adjustment for MiniPascal) */
-%nonassoc IF_PREC
-%nonassoc ELSE
+program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement '.'
+    { $$ = new ProgramNode($2, $4, $5, $6, lin, col); root_ast_node = $$; }
+    ;
 
-%left '+' '-' // Example, will need MiniPascal operators
-%left '*' '/' // Example, will need MiniPascal operators (DIV_OP, regular /)
-%left UNARY_OP // Example for unary minus
+id_node: IDENT 
+    { $$ = new IdentNode($1->name, $1->line, $1->column); delete $1; } 
+    ;
 
+identifier_list: id_node
+    { $$ = new IdentifierList($1, lin, col); }
+    | identifier_list ',' id_node
+    { $1->addIdentifier($3); $$ = $1; }
+    ;
 
-%% /* Grammar Rules will start here */
+declarations: /* empty */
+    { $$ = new Declarations(lin, col); }
+    | VAR var_declaration_list_non_empty
+    { $$ = $2; } 
+    ;
 
-/* Your existing C-style grammar rules (will need to be replaced/adapted for MiniPascal) */
-/* For now, just keeping the structure and your existing 'func' as a placeholder start */
+var_declaration_list_non_empty: var_declaration_item
+    { $$ = new Declarations(lin, col); $$->addVarDecl($1); } 
+    | var_declaration_list_non_empty var_declaration_item
+    { $1->addVarDecl($2); $$ = $1; } 
+    ;
 
-func : type IDENT '(' args_e ')' '{' stmts '}' /* C-style, not MiniPascal */
-    {
-        // Example of using lin, col from lexer for the Func node
-        $$ = new Func($1, $2, $4, $7, lin, col); // lin, col would be current pos after '}'
-                                                 // or better, capture @N positions if using Bison locations
-        root = $$;
-        // std::cout << "Parsed a function!" << std::endl;
-    }
-;
+var_declaration_item: identifier_list ':' type ';' 
+    { $$ = new VarDecl($1, $3, lin, col); } 
+    ;
 
-arg : type IDENT
-    {
-        $$ = new Arg($1, $2, lin, col); // Using global lin/col
-    }
-;
+type: standard_type
+    { $$ = $1; } 
+    | ARRAY '[' int_num_node DOTDOT int_num_node ']' OF standard_type
+    { $$ = new ArrayTypeNode($3, $5, $8, lin, col); }
+    ;
 
-args: arg
-    {
-        $$ = new Args($1, lin, col); // Using global lin/col
-    }
-    | args ',' arg
-    {
-        $$ = $1;
-        $$->AddArg($3);
-    }
-;
+int_num_node: NUM 
+    { $$ = new IntNumNode($1->value, $1->line, $1->column); delete $1; } 
+    ;
 
-args_e: /* empty */
-    {
-        $$ = new Args(lin, col); // Using global lin/col
-    }
-    | args
-    {
-        $$ = $1;
-    }
-;
+real_num_node: REAL_LITERAL 
+    { $$ = new RealNumNode($1->value, $1->line, $1->column); delete $1; } 
+    ;
 
-type: INTEGER_TYPE /* Changed from INT to INTEGER_TYPE for MiniPascal */
-    {
-        $$ = 1; // Replace with actual type enum or constant for 'integer'
-                // e.g., TYPE_INTEGER
-    }
-    | REAL_TYPE /* Added for MiniPascal */
-    {
-        $$ = 2; // Replace with actual type enum or constant for 'real'
-                // e.g., TYPE_REAL
-    }
-;
+standard_type: INTEGER_TYPE
+    { $$ = new StandardTypeNode(StandardTypeNode::TYPE_INTEGER, lin, col); }
+    | REAL_TYPE
+    { $$ = new StandardTypeNode(StandardTypeNode::TYPE_REAL, lin, col); }
+    | BOOLEAN_TYPE
+    { $$ = new StandardTypeNode(StandardTypeNode::TYPE_BOOLEAN, lin, col); }
+    ;
 
-expr: NUM
-    {
-        // $$ = $1; // If NUM directly maps to an Expr* subtype
-        // Example: create a generic expression node or handle $1 (Num*)
-        // std::cout << "expr -> NUM production reduced" << std::endl;
-        // Assuming $1 (tNum which is Num*) can be assigned to tExpr (Expr*)
-        $$ = $1;
-    }
-    | REAL_LITERAL // New rule for real literals
-    {
-        $$ = $1; // Assuming $1 (realLit which is RealLit*) can be assigned to tExpr (Expr*)
-        // std::cout << "expr -> REAL_LITERAL production reduced" << std::endl;
-    }
-    | IDENT
-    {
-        $$ = new IdExpr($1, lin, col); // Using global lin/col
-    }
-    | '-' expr %prec UNARY_OP
-    {
-        $$ = new Minus($2, lin, col); // Using global lin/col
-    }
-    | expr '+' expr
-    {
-        $$ = new Add($1, $3, lin, col); // Using global lin/col
-    }
-    // ... more MiniPascal expressions (boolean, relational, etc.) will be added here
-;
+subprogram_declarations: /* empty */
+    { $$ = new SubprogramDeclarations(lin, col); }
+    | subprogram_declarations subprogram_declaration_block 
+    { $1->addSubprogramDeclaration($2); $$ = $1; }
+    ;
 
-stmt: IDENT ASSIGN_OP expr ';' /* MiniPascal assignment: id := expr ; */
-    {
-        $$ = new Assign($1, $3, lin, col); // Using global lin/col
-    }
-    | type IDENT ';' /* Variable declaration, but MiniPascal has a VAR section */
-                     /* This rule might be part of a different non-terminal in full MiniPascal */
-    {
-        $$ = new VarDecl($1, $2, lin, col); // Using global lin/col
-    }
-    | IF '(' expr ')' stmt %prec IF_PREC /* C-style if, needs adaptation */
-    {
-        // Placeholder for IF statement construction
-        // $$ = new IfNode($3, $5, nullptr, lin, col);
-    }
-    | IF '(' expr ')' stmt ELSE stmt /* C-style if-else, needs adaptation */
-    {
-        // Placeholder for IF-ELSE statement construction
-        // $$ = new IfNode($3, $5, $7, lin, col);
-    }
-    | '{' stmts '}' /* C-style block, MiniPascal uses BEGIN END */
-    {
-        // $$ = $2; // If stmts directly returns a Stmts* compatible with Stmt* (if Stmts is a Stmt)
-                   // Or, wrap $2 in a BlockStmt node if Stmts is a list container
-    }
-    // ... more MiniPascal statements (WHILE, FOR, BEGIN_END blocks, etc.) will be added here
-;
+subprogram_declaration_block: subprogram_declaration ';' 
+    { $$ = $1; } 
+    ;
 
-stmts: /* Empty */
-    {
-        $$ = new Stmts(lin, col); // Using global lin/col for an empty list
-    }
-    | stmts stmt
-    {
-        $$ = $1;
-        if ($2) $$->AddStmt($2); // AddStmt should handle null if necessary
-    }
-;
+subprogram_declaration: subprogram_head compound_statement
+    { $$ = new SubprogramDeclaration($1, $2, lin, col); }
+    ;
 
-%% /* C Code Section */
+subprogram_head: FUNCTION id_node arguments ':' standard_type ';'
+    { $$ = new FunctionHeadNode($2, $3, $5, lin, col); }
+    | PROCEDURE id_node arguments ';'
+    { $$ = new ProcedureHeadNode($2, $3, lin, col); }
+    ;
+
+arguments: /* empty */
+    { $$ = new ArgumentsNode(lin, col); } 
+    | '(' parameter_list ')' 
+    { $$ = new ArgumentsNode($2, lin, col); } 
+    ;
+
+parameter_list: parameter_declaration_group 
+    { $$ = new ParameterList($1, lin, col); }
+    | parameter_list ';' parameter_declaration_group
+    { $1->addParameterDeclarationGroup($3); $$ = $1; }
+    ;
+
+parameter_declaration_group: identifier_list ':' type
+    { $$ = new ParameterDeclaration($1, $3, lin, col); } 
+    ;
+
+compound_statement: BEGIN_TOKEN optional_statements END_TOKEN
+    { $$ = new CompoundStatementNode($2, lin, col); }
+    ;
+
+// Modified rules for handling optional trailing semicolon for statements
+optional_statements: /* empty */
+    { $$ = new StatementList(lin, col); } 
+    | statement_list_terminated // Use the new rule here
+    { $$ = $1; }
+    ;
+
+statement_list_terminated: statement_list
+    { $$ = $1; } // A statement list without a trailing semicolon
+    | statement_list ';' // A statement list *with* a trailing semicolon
+    { $$ = $1; /* The list is $1, the semicolon is consumed */ }
+    ;
+
+// Original statement_list (semicolon as separator, not terminator for the whole list)
+statement_list: statement
+    { $$ = new StatementList(lin, col); $$->addStatement($1); } // Create list with first statement
+    | statement_list ';' statement
+    { $1->addStatement($3); $$ = $1; }
+    ;
+// End of modified statement rules
+
+statement: variable ASSIGN_OP expression
+    { $$ = new AssignStatementNode($1, $3, lin, col); }
+    | procedure_statement
+    { $$ = $1; } 
+    | compound_statement
+    { $$ = $1; } 
+    | IF expression THEN statement %prec THEN 
+    { $$ = new IfStatementNode($2, $4, nullptr, lin, col); }
+    | IF expression THEN statement ELSE statement
+    { $$ = new IfStatementNode($2, $4, $6, lin, col); }
+    | WHILE expression DO statement
+    { $$ = new WhileStatementNode($2, $4, lin, col); }
+    ;
+
+variable: id_node
+    { $$ = new VariableNode($1, nullptr, lin, col); } 
+    | id_node '[' expression ']'
+    { $$ = new VariableNode($1, $3, lin, col); } 
+    ;
+
+procedure_statement: id_node
+    { $$ = new ProcedureCallStatementNode($1, new ExpressionList(lin,col), lin, col); } 
+    | id_node '(' expression_list ')'
+    { $$ = new ProcedureCallStatementNode($1, $3, lin, col); } 
+    ;
+
+expression_list: expression
+    { $$ = new ExpressionList($1, lin, col); $$->addExpression($1); } // Create list with first expression
+    | expression_list ',' expression
+    { $1->addExpression($3); $$ = $1; }
+    ;
+
+expression: simple_expression
+    { $$ = $1; }
+    | simple_expression EQ_OP simple_expression
+    { $$ = new BinaryOpNode($1, "EQ_OP", $3, lin, col); }
+    | simple_expression NEQ_OP simple_expression
+    { $$ = new BinaryOpNode($1, "NEQ_OP", $3, lin, col); }
+    | simple_expression LT_OP simple_expression
+    { $$ = new BinaryOpNode($1, "LT_OP", $3, lin, col); }
+    | simple_expression LTE_OP simple_expression
+    { $$ = new BinaryOpNode($1, "LTE_OP", $3, lin, col); }
+    | simple_expression GT_OP simple_expression
+    { $$ = new BinaryOpNode($1, "GT_OP", $3, lin, col); }
+    | simple_expression GTE_OP simple_expression
+    { $$ = new BinaryOpNode($1, "GTE_OP", $3, lin, col); }
+    ;
+
+simple_expression: term
+    { $$ = $1; }
+    | simple_expression '+' term
+    { $$ = new BinaryOpNode($1, "+", $3, lin, col); }
+    | simple_expression '-' term
+    { $$ = new BinaryOpNode($1, "-", $3, lin, col); }
+    | simple_expression OR_OP term 
+    { $$ = new BinaryOpNode($1, "OR_OP", $3, lin, col); }
+    ;
+
+term: factor
+    { $$ = $1; }
+    | term '*' factor
+    { $$ = new BinaryOpNode($1, "*", $3, lin, col); }
+    | term '/' factor
+    { $$ = new BinaryOpNode($1, "/", $3, lin, col); }
+    | term DIV_OP factor
+    { $$ = new BinaryOpNode($1, "DIV_OP", $3, lin, col); }
+    | term AND_OP factor 
+    { $$ = new BinaryOpNode($1, "AND_OP", $3, lin, col); }
+    ;
+
+factor: primary
+    { $$ = $1; }
+    | '-' factor %prec UMINUS
+    { $$ = new UnaryOpNode("-", $2, lin, col); }
+    | NOT_OP factor 
+    { $$ = new UnaryOpNode("NOT_OP", $2, lin, col); }
+    ;
+
+primary: id_node
+    { $$ = new IdExprNode($1, lin, col); } 
+    | int_num_node
+    { $$ = $1; } 
+    | real_num_node
+    { $$ = $1; } 
+    | TRUE_KEYWORD
+    { $$ = new BooleanLiteralNode(true, lin, col); }
+    | FALSE_KEYWORD
+    { $$ = new BooleanLiteralNode(false, lin, col); }
+    | id_node '(' expression_list ')' 
+    { $$ = new FunctionCallExprNode($1, $3, lin, col); }
+    | '(' expression ')'
+    { $$ = $2; } 
+    ;
+
+%% 
 
 int yyerror(const char* s) {
-    // lin and col here are (hopefully) the location of the token that caused the error
     std::cout << "SYNTAX ERROR: " << s << " at line: " << lin << ", Column: " << col << std::endl;
-    // You might want to print yytext if available and relevant
     return 0;
 }

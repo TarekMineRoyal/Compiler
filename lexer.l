@@ -70,29 +70,32 @@ ALPHA    [a-zA-Z]
     "not"               { int token_col = col; col += yyleng; return NOT_OP; }
     "or"                { int token_col = col; col += yyleng; return OR_OP; }
     "and"               { int token_col = col; col += yyleng; return AND_OP; }
+    "boolean" { /* int token_col = col; */ col += yyleng; return BOOLEAN_TYPE; }
+    "true"    { /* int token_col = col; */ col += yyleng; return TRUE_KEYWORD; }
+    "false"   { /* int token_col = col; */ col += yyleng; return FALSE_KEYWORD; }
+    ".."      { /* int token_col = col; */ col += yyleng; return DOTDOT; }
 
     /* Literals: Order for Flex to pick longest match.
        Combined real number rules first, then integer. */
     {DIGIT}+\.{DIGIT}*([eE][-+]?{DIGIT}+)? |
-    \.{DIGIT}+([eE][-+]?{DIGIT}+)? |
-    {DIGIT}+[eE][-+]?{DIGIT}+ {
-                            yylval.realLit = new RealLit(atof(yytext), lin, col);
-                            col += yyleng;
-                            return REAL_LITERAL;
-                        }
+        \.{DIGIT}+([eE][-+]?{DIGIT}+)? |
+        {DIGIT}+[eE][-+]?{DIGIT}+ {
+        yylval.rawRealLit = new RealLit(atof(yytext), lin, col); // NEW: rawRealLit
+        col += yyleng;
+        return REAL_LITERAL;
+    }
 
-    {DIGIT}+                {
-                            yylval.tNum = new Num(atoi(yytext), lin, col); // Using your existing Num for integers
-                            col += yyleng;
-                            return NUM;    // Your existing token for integer literals
-                        }
+    {DIGIT}+ {
+        yylval.rawNum = new Num(atoi(yytext), lin, col); // NEW: rawNum
+        col+= yyleng;
+        return NUM; 
+    }
 
-    /* Identifiers - Must be after keywords */
     ({ALPHA}|_)({ALPHA}|{DIGIT}|_)* {
-                            yylval.tIdent = new Ident(std::string(yytext), lin, col);
-                            col += yyleng;
-                            return IDENT;
-                        }
+        yylval.rawIdent = new Ident(std::string(yytext), lin, col); // NEW: rawIdent
+        col += yyleng;
+        return IDENT;
+    }
 
     /* Operators and Punctuation */
     ":="                    { int token_col = col; col += yyleng; return ASSIGN_OP; }
