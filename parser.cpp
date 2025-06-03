@@ -581,14 +581,14 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    99,    99,   103,   107,   109,   114,   115,   119,   121,
-     125,   129,   131,   135,   139,   143,   145,   147,   152,   153,
-     157,   161,   165,   167,   172,   173,   177,   179,   183,   187,
-     193,   194,   198,   200,   205,   207,   212,   214,   216,   218,
-     220,   222,   226,   228,   232,   234,   238,   240,   244,   246,
-     248,   250,   252,   254,   256,   260,   262,   264,   266,   270,
-     272,   274,   276,   278,   282,   284,   286,   290,   292,   294,
-     296,   298,   300,   302
+       0,   100,   100,   104,   108,   110,   115,   116,   120,   122,
+     126,   130,   132,   136,   140,   144,   146,   148,   153,   154,
+     158,   162,   166,   168,   173,   174,   178,   180,   184,   188,
+     194,   195,   199,   201,   206,   208,   213,   215,   217,   219,
+     221,   223,   227,   229,   233,   235,   239,   241,   245,   247,
+     249,   251,   253,   255,   257,   261,   263,   265,   267,   271,
+     273,   275,   277,   279,   283,   285,   287,   291,   293,   295,
+     297,   299,   301,   303
 };
 #endif
 
@@ -1244,433 +1244,433 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement '.'  */
-#line 100 "parser.y"
+#line 101 "parser.y"
     { (yyval.pProgramNode) = new ProgramNode((yyvsp[-5].pIdentNode), (yyvsp[-3].pDeclarations), (yyvsp[-2].pSubprogramDeclarations), (yyvsp[-1].pCompoundStatementNode), lin, col); root_ast_node = (yyval.pProgramNode); }
 #line 1250 "parser.cpp"
     break;
 
   case 3: /* id_node: IDENT  */
-#line 104 "parser.y"
+#line 105 "parser.y"
     { (yyval.pIdentNode) = new IdentNode((yyvsp[0].rawIdent)->name, (yyvsp[0].rawIdent)->line, (yyvsp[0].rawIdent)->column); delete (yyvsp[0].rawIdent); }
 #line 1256 "parser.cpp"
     break;
 
   case 4: /* identifier_list: id_node  */
-#line 108 "parser.y"
+#line 109 "parser.y"
     { (yyval.pIdentifierList) = new IdentifierList((yyvsp[0].pIdentNode), lin, col); }
 #line 1262 "parser.cpp"
     break;
 
   case 5: /* identifier_list: identifier_list ',' id_node  */
-#line 110 "parser.y"
+#line 111 "parser.y"
     { (yyvsp[-2].pIdentifierList)->addIdentifier((yyvsp[0].pIdentNode)); (yyval.pIdentifierList) = (yyvsp[-2].pIdentifierList); }
 #line 1268 "parser.cpp"
     break;
 
   case 6: /* declarations: %empty  */
-#line 114 "parser.y"
+#line 115 "parser.y"
     { (yyval.pDeclarations) = new Declarations(lin, col); }
 #line 1274 "parser.cpp"
     break;
 
   case 7: /* declarations: VAR var_declaration_list_non_empty  */
-#line 116 "parser.y"
+#line 117 "parser.y"
     { (yyval.pDeclarations) = (yyvsp[0].pDeclarations); }
 #line 1280 "parser.cpp"
     break;
 
   case 8: /* var_declaration_list_non_empty: var_declaration_item  */
-#line 120 "parser.y"
+#line 121 "parser.y"
     { (yyval.pDeclarations) = new Declarations(lin, col); (yyval.pDeclarations)->addVarDecl((yyvsp[0].pVarDecl)); }
 #line 1286 "parser.cpp"
     break;
 
   case 9: /* var_declaration_list_non_empty: var_declaration_list_non_empty var_declaration_item  */
-#line 122 "parser.y"
+#line 123 "parser.y"
     { (yyvsp[-1].pDeclarations)->addVarDecl((yyvsp[0].pVarDecl)); (yyval.pDeclarations) = (yyvsp[-1].pDeclarations); }
 #line 1292 "parser.cpp"
     break;
 
   case 10: /* var_declaration_item: identifier_list ':' type ';'  */
-#line 126 "parser.y"
+#line 127 "parser.y"
     { (yyval.pVarDecl) = new VarDecl((yyvsp[-3].pIdentifierList), (yyvsp[-1].pTypeNode), lin, col); }
 #line 1298 "parser.cpp"
     break;
 
   case 11: /* type: standard_type  */
-#line 130 "parser.y"
+#line 131 "parser.y"
     { (yyval.pTypeNode) = (yyvsp[0].pStandardTypeNode); }
 #line 1304 "parser.cpp"
     break;
 
   case 12: /* type: ARRAY '[' int_num_node DOTDOT int_num_node ']' OF standard_type  */
-#line 132 "parser.y"
+#line 133 "parser.y"
     { (yyval.pTypeNode) = new ArrayTypeNode((yyvsp[-5].pIntNumNode), (yyvsp[-3].pIntNumNode), (yyvsp[0].pStandardTypeNode), lin, col); }
 #line 1310 "parser.cpp"
     break;
 
   case 13: /* int_num_node: NUM  */
-#line 136 "parser.y"
+#line 137 "parser.y"
     { (yyval.pIntNumNode) = new IntNumNode((yyvsp[0].rawNum)->value, (yyvsp[0].rawNum)->line, (yyvsp[0].rawNum)->column); delete (yyvsp[0].rawNum); }
 #line 1316 "parser.cpp"
     break;
 
   case 14: /* real_num_node: REAL_LITERAL  */
-#line 140 "parser.y"
+#line 141 "parser.y"
     { (yyval.pRealNumNode) = new RealNumNode((yyvsp[0].rawRealLit)->value, (yyvsp[0].rawRealLit)->line, (yyvsp[0].rawRealLit)->column); delete (yyvsp[0].rawRealLit); }
 #line 1322 "parser.cpp"
     break;
 
   case 15: /* standard_type: INTEGER_TYPE  */
-#line 144 "parser.y"
+#line 145 "parser.y"
     { (yyval.pStandardTypeNode) = new StandardTypeNode(StandardTypeNode::TYPE_INTEGER, lin, col); }
 #line 1328 "parser.cpp"
     break;
 
   case 16: /* standard_type: REAL_TYPE  */
-#line 146 "parser.y"
+#line 147 "parser.y"
     { (yyval.pStandardTypeNode) = new StandardTypeNode(StandardTypeNode::TYPE_REAL, lin, col); }
 #line 1334 "parser.cpp"
     break;
 
   case 17: /* standard_type: BOOLEAN_TYPE  */
-#line 148 "parser.y"
+#line 149 "parser.y"
     { (yyval.pStandardTypeNode) = new StandardTypeNode(StandardTypeNode::TYPE_BOOLEAN, lin, col); }
 #line 1340 "parser.cpp"
     break;
 
   case 18: /* subprogram_declarations: %empty  */
-#line 152 "parser.y"
+#line 153 "parser.y"
     { (yyval.pSubprogramDeclarations) = new SubprogramDeclarations(lin, col); }
 #line 1346 "parser.cpp"
     break;
 
   case 19: /* subprogram_declarations: subprogram_declarations subprogram_declaration_block  */
-#line 154 "parser.y"
+#line 155 "parser.y"
     { (yyvsp[-1].pSubprogramDeclarations)->addSubprogramDeclaration((yyvsp[0].pSubprogramDeclaration)); (yyval.pSubprogramDeclarations) = (yyvsp[-1].pSubprogramDeclarations); }
 #line 1352 "parser.cpp"
     break;
 
   case 20: /* subprogram_declaration_block: subprogram_declaration ';'  */
-#line 158 "parser.y"
+#line 159 "parser.y"
     { (yyval.pSubprogramDeclaration) = (yyvsp[-1].pSubprogramDeclaration); }
 #line 1358 "parser.cpp"
     break;
 
   case 21: /* subprogram_declaration: subprogram_head compound_statement  */
-#line 162 "parser.y"
+#line 163 "parser.y"
     { (yyval.pSubprogramDeclaration) = new SubprogramDeclaration((yyvsp[-1].pSubprogramHead), (yyvsp[0].pCompoundStatementNode), lin, col); }
 #line 1364 "parser.cpp"
     break;
 
   case 22: /* subprogram_head: FUNCTION id_node arguments ':' standard_type ';'  */
-#line 166 "parser.y"
+#line 167 "parser.y"
     { (yyval.pSubprogramHead) = new FunctionHeadNode((yyvsp[-4].pIdentNode), (yyvsp[-3].pArgumentsNode), (yyvsp[-1].pStandardTypeNode), lin, col); }
 #line 1370 "parser.cpp"
     break;
 
   case 23: /* subprogram_head: PROCEDURE id_node arguments ';'  */
-#line 168 "parser.y"
+#line 169 "parser.y"
     { (yyval.pSubprogramHead) = new ProcedureHeadNode((yyvsp[-2].pIdentNode), (yyvsp[-1].pArgumentsNode), lin, col); }
 #line 1376 "parser.cpp"
     break;
 
   case 24: /* arguments: %empty  */
-#line 172 "parser.y"
+#line 173 "parser.y"
     { (yyval.pArgumentsNode) = new ArgumentsNode(lin, col); }
 #line 1382 "parser.cpp"
     break;
 
   case 25: /* arguments: '(' parameter_list ')'  */
-#line 174 "parser.y"
+#line 175 "parser.y"
     { (yyval.pArgumentsNode) = new ArgumentsNode((yyvsp[-1].pParameterList), lin, col); }
 #line 1388 "parser.cpp"
     break;
 
   case 26: /* parameter_list: parameter_declaration_group  */
-#line 178 "parser.y"
+#line 179 "parser.y"
     { (yyval.pParameterList) = new ParameterList((yyvsp[0].pParameterDeclaration), lin, col); }
 #line 1394 "parser.cpp"
     break;
 
   case 27: /* parameter_list: parameter_list ';' parameter_declaration_group  */
-#line 180 "parser.y"
+#line 181 "parser.y"
     { (yyvsp[-2].pParameterList)->addParameterDeclarationGroup((yyvsp[0].pParameterDeclaration)); (yyval.pParameterList) = (yyvsp[-2].pParameterList); }
 #line 1400 "parser.cpp"
     break;
 
   case 28: /* parameter_declaration_group: identifier_list ':' type  */
-#line 184 "parser.y"
+#line 185 "parser.y"
     { (yyval.pParameterDeclaration) = new ParameterDeclaration((yyvsp[-2].pIdentifierList), (yyvsp[0].pTypeNode), lin, col); }
 #line 1406 "parser.cpp"
     break;
 
   case 29: /* compound_statement: BEGIN_TOKEN optional_statements END_TOKEN  */
-#line 188 "parser.y"
+#line 189 "parser.y"
     { (yyval.pCompoundStatementNode) = new CompoundStatementNode((yyvsp[-1].pStatementList), lin, col); }
 #line 1412 "parser.cpp"
     break;
 
   case 30: /* optional_statements: %empty  */
-#line 193 "parser.y"
+#line 194 "parser.y"
     { (yyval.pStatementList) = new StatementList(lin, col); }
 #line 1418 "parser.cpp"
     break;
 
   case 31: /* optional_statements: statement_list_terminated  */
-#line 195 "parser.y"
+#line 196 "parser.y"
     { (yyval.pStatementList) = (yyvsp[0].pStatementList); }
 #line 1424 "parser.cpp"
     break;
 
   case 32: /* statement_list_terminated: statement_list  */
-#line 199 "parser.y"
+#line 200 "parser.y"
     { (yyval.pStatementList) = (yyvsp[0].pStatementList); }
 #line 1430 "parser.cpp"
     break;
 
   case 33: /* statement_list_terminated: statement_list ';'  */
-#line 201 "parser.y"
+#line 202 "parser.y"
     { (yyval.pStatementList) = (yyvsp[-1].pStatementList); /* The list is $1, the semicolon is consumed */ }
 #line 1436 "parser.cpp"
     break;
 
   case 34: /* statement_list: statement  */
-#line 206 "parser.y"
+#line 207 "parser.y"
     { (yyval.pStatementList) = new StatementList(lin, col); (yyval.pStatementList)->addStatement((yyvsp[0].pStatementNode)); }
 #line 1442 "parser.cpp"
     break;
 
   case 35: /* statement_list: statement_list ';' statement  */
-#line 208 "parser.y"
+#line 209 "parser.y"
     { (yyvsp[-2].pStatementList)->addStatement((yyvsp[0].pStatementNode)); (yyval.pStatementList) = (yyvsp[-2].pStatementList); }
 #line 1448 "parser.cpp"
     break;
 
   case 36: /* statement: variable ASSIGN_OP expression  */
-#line 213 "parser.y"
+#line 214 "parser.y"
     { (yyval.pStatementNode) = new AssignStatementNode((yyvsp[-2].pVariableNode), (yyvsp[0].pExprNode), lin, col); }
 #line 1454 "parser.cpp"
     break;
 
   case 37: /* statement: procedure_statement  */
-#line 215 "parser.y"
+#line 216 "parser.y"
     { (yyval.pStatementNode) = (yyvsp[0].pProcedureCallStatementNode); }
 #line 1460 "parser.cpp"
     break;
 
   case 38: /* statement: compound_statement  */
-#line 217 "parser.y"
+#line 218 "parser.y"
     { (yyval.pStatementNode) = (yyvsp[0].pCompoundStatementNode); }
 #line 1466 "parser.cpp"
     break;
 
   case 39: /* statement: IF expression THEN statement  */
-#line 219 "parser.y"
+#line 220 "parser.y"
     { (yyval.pStatementNode) = new IfStatementNode((yyvsp[-2].pExprNode), (yyvsp[0].pStatementNode), nullptr, lin, col); }
 #line 1472 "parser.cpp"
     break;
 
   case 40: /* statement: IF expression THEN statement ELSE statement  */
-#line 221 "parser.y"
+#line 222 "parser.y"
     { (yyval.pStatementNode) = new IfStatementNode((yyvsp[-4].pExprNode), (yyvsp[-2].pStatementNode), (yyvsp[0].pStatementNode), lin, col); }
 #line 1478 "parser.cpp"
     break;
 
   case 41: /* statement: WHILE expression DO statement  */
-#line 223 "parser.y"
+#line 224 "parser.y"
     { (yyval.pStatementNode) = new WhileStatementNode((yyvsp[-2].pExprNode), (yyvsp[0].pStatementNode), lin, col); }
 #line 1484 "parser.cpp"
     break;
 
   case 42: /* variable: id_node  */
-#line 227 "parser.y"
+#line 228 "parser.y"
     { (yyval.pVariableNode) = new VariableNode((yyvsp[0].pIdentNode), nullptr, lin, col); }
 #line 1490 "parser.cpp"
     break;
 
   case 43: /* variable: id_node '[' expression ']'  */
-#line 229 "parser.y"
+#line 230 "parser.y"
     { (yyval.pVariableNode) = new VariableNode((yyvsp[-3].pIdentNode), (yyvsp[-1].pExprNode), lin, col); }
 #line 1496 "parser.cpp"
     break;
 
   case 44: /* procedure_statement: id_node  */
-#line 233 "parser.y"
+#line 234 "parser.y"
     { (yyval.pProcedureCallStatementNode) = new ProcedureCallStatementNode((yyvsp[0].pIdentNode), new ExpressionList(lin,col), lin, col); }
 #line 1502 "parser.cpp"
     break;
 
   case 45: /* procedure_statement: id_node '(' expression_list ')'  */
-#line 235 "parser.y"
+#line 236 "parser.y"
     { (yyval.pProcedureCallStatementNode) = new ProcedureCallStatementNode((yyvsp[-3].pIdentNode), (yyvsp[-1].pExpressionList), lin, col); }
 #line 1508 "parser.cpp"
     break;
 
   case 46: /* expression_list: expression  */
-#line 239 "parser.y"
+#line 240 "parser.y"
     { (yyval.pExpressionList) = new ExpressionList((yyvsp[0].pExprNode), lin, col); (yyval.pExpressionList)->addExpression((yyvsp[0].pExprNode)); }
 #line 1514 "parser.cpp"
     break;
 
   case 47: /* expression_list: expression_list ',' expression  */
-#line 241 "parser.y"
+#line 242 "parser.y"
     { (yyvsp[-2].pExpressionList)->addExpression((yyvsp[0].pExprNode)); (yyval.pExpressionList) = (yyvsp[-2].pExpressionList); }
 #line 1520 "parser.cpp"
     break;
 
   case 48: /* expression: simple_expression  */
-#line 245 "parser.y"
+#line 246 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pExprNode); }
 #line 1526 "parser.cpp"
     break;
 
   case 49: /* expression: simple_expression EQ_OP simple_expression  */
-#line 247 "parser.y"
+#line 248 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "EQ_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1532 "parser.cpp"
     break;
 
   case 50: /* expression: simple_expression NEQ_OP simple_expression  */
-#line 249 "parser.y"
+#line 250 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "NEQ_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1538 "parser.cpp"
     break;
 
   case 51: /* expression: simple_expression LT_OP simple_expression  */
-#line 251 "parser.y"
+#line 252 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "LT_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1544 "parser.cpp"
     break;
 
   case 52: /* expression: simple_expression LTE_OP simple_expression  */
-#line 253 "parser.y"
+#line 254 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "LTE_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1550 "parser.cpp"
     break;
 
   case 53: /* expression: simple_expression GT_OP simple_expression  */
-#line 255 "parser.y"
+#line 256 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "GT_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1556 "parser.cpp"
     break;
 
   case 54: /* expression: simple_expression GTE_OP simple_expression  */
-#line 257 "parser.y"
+#line 258 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "GTE_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1562 "parser.cpp"
     break;
 
   case 55: /* simple_expression: term  */
-#line 261 "parser.y"
+#line 262 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pExprNode); }
 #line 1568 "parser.cpp"
     break;
 
   case 56: /* simple_expression: simple_expression '+' term  */
-#line 263 "parser.y"
+#line 264 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "+", (yyvsp[0].pExprNode), lin, col); }
 #line 1574 "parser.cpp"
     break;
 
   case 57: /* simple_expression: simple_expression '-' term  */
-#line 265 "parser.y"
+#line 266 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "-", (yyvsp[0].pExprNode), lin, col); }
 #line 1580 "parser.cpp"
     break;
 
   case 58: /* simple_expression: simple_expression OR_OP term  */
-#line 267 "parser.y"
+#line 268 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "OR_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1586 "parser.cpp"
     break;
 
   case 59: /* term: factor  */
-#line 271 "parser.y"
+#line 272 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pExprNode); }
 #line 1592 "parser.cpp"
     break;
 
   case 60: /* term: term '*' factor  */
-#line 273 "parser.y"
+#line 274 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "*", (yyvsp[0].pExprNode), lin, col); }
 #line 1598 "parser.cpp"
     break;
 
   case 61: /* term: term '/' factor  */
-#line 275 "parser.y"
+#line 276 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "/", (yyvsp[0].pExprNode), lin, col); }
 #line 1604 "parser.cpp"
     break;
 
   case 62: /* term: term DIV_OP factor  */
-#line 277 "parser.y"
+#line 278 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "DIV_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1610 "parser.cpp"
     break;
 
   case 63: /* term: term AND_OP factor  */
-#line 279 "parser.y"
+#line 280 "parser.y"
     { (yyval.pExprNode) = new BinaryOpNode((yyvsp[-2].pExprNode), "AND_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1616 "parser.cpp"
     break;
 
   case 64: /* factor: primary  */
-#line 283 "parser.y"
+#line 284 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pExprNode); }
 #line 1622 "parser.cpp"
     break;
 
   case 65: /* factor: '-' factor  */
-#line 285 "parser.y"
+#line 286 "parser.y"
     { (yyval.pExprNode) = new UnaryOpNode("-", (yyvsp[0].pExprNode), lin, col); }
 #line 1628 "parser.cpp"
     break;
 
   case 66: /* factor: NOT_OP factor  */
-#line 287 "parser.y"
+#line 288 "parser.y"
     { (yyval.pExprNode) = new UnaryOpNode("NOT_OP", (yyvsp[0].pExprNode), lin, col); }
 #line 1634 "parser.cpp"
     break;
 
   case 67: /* primary: id_node  */
-#line 291 "parser.y"
+#line 292 "parser.y"
     { (yyval.pExprNode) = new IdExprNode((yyvsp[0].pIdentNode), lin, col); }
 #line 1640 "parser.cpp"
     break;
 
   case 68: /* primary: int_num_node  */
-#line 293 "parser.y"
+#line 294 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pIntNumNode); }
 #line 1646 "parser.cpp"
     break;
 
   case 69: /* primary: real_num_node  */
-#line 295 "parser.y"
+#line 296 "parser.y"
     { (yyval.pExprNode) = (yyvsp[0].pRealNumNode); }
 #line 1652 "parser.cpp"
     break;
 
   case 70: /* primary: TRUE_KEYWORD  */
-#line 297 "parser.y"
+#line 298 "parser.y"
     { (yyval.pExprNode) = new BooleanLiteralNode(true, lin, col); }
 #line 1658 "parser.cpp"
     break;
 
   case 71: /* primary: FALSE_KEYWORD  */
-#line 299 "parser.y"
+#line 300 "parser.y"
     { (yyval.pExprNode) = new BooleanLiteralNode(false, lin, col); }
 #line 1664 "parser.cpp"
     break;
 
   case 72: /* primary: id_node '(' expression_list ')'  */
-#line 301 "parser.y"
+#line 302 "parser.y"
     { (yyval.pExprNode) = new FunctionCallExprNode((yyvsp[-3].pIdentNode), (yyvsp[-1].pExpressionList), lin, col); }
 #line 1670 "parser.cpp"
     break;
 
   case 73: /* primary: '(' expression ')'  */
-#line 303 "parser.y"
+#line 304 "parser.y"
     { (yyval.pExprNode) = (yyvsp[-1].pExprNode); }
 #line 1676 "parser.cpp"
     break;
@@ -1869,7 +1869,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 306 "parser.y"
+#line 307 "parser.y"
  
 
 int yyerror(const char* s) {

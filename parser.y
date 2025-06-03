@@ -82,13 +82,14 @@ ProgramNode *root_ast_node;
 %type <pExpressionList> expression_list
 %type <pExprNode> expression simple_expression term factor primary 
 
-%left OR_OP
-%left AND_OP
-%right NOT_OP 
-%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP
-%left '+' '-' 
-%left '*' '/' DIV_OP 
-%right UMINUS 
+%left OR_OP                                            // 1. or (weakest)
+%left AND_OP                                           // 2. and
+%left NOT_OP                                           // 3. not (consider %right NOT_OP if needed, but %left mainly ranks it here)
+%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP       // 4. relational operators (all same level)
+%left '+' '-'                                          // 5. additive operators
+%left '*' '/' DIV_OP                                   // 6. multiplicative operators (strongest of these)
+%right UMINUS                                          // 7. unary minus (highest)
+
 %nonassoc THEN
 %nonassoc ELSE 
 
