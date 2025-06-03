@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     // You might want to handle file input here eventually
     // For now, it will likely read from stdin or whatever yyin is set to by default
     while (true) {
-        yydebug = 1;  // Set to 1 to enable Bison debug output if needed
+        yydebug = 0;  // Set to 1 to enable Bison debug output if needed
 
         std::cout << "Starting parsing..." << std::endl;
         int parse_result = yyparse(); // Call the parser
@@ -22,6 +22,11 @@ int main(int argc, char* argv[]) {
             std::cout << "Parsing successful!" << std::endl;
             // Here you would typically traverse or process the AST (root_ast_node)
             // For example: root_ast_node->print(); or root_ast_node->execute();
+            std::cout << "--- AST Dump ---" << std::endl;
+            root_ast_node->print(std::cout, 0); // Call the print method
+            std::cout << "--- End AST Dump ---" << std::endl;
+            // Remember to delete root_ast_node eventually to free memory
+            delete root_ast_node; // Add destructors to your AST nodes for proper cleanup!
         }
         else {
             std::cout << "Parsing failed." << std::endl;

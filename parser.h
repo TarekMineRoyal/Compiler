@@ -98,10 +98,10 @@ union YYSTYPE
 {
 #line 18 "parser.y"
 
-    Node* pNode; 
+    Node* pNode;
     ProgramNode* pProgramNode;
     IdentifierList* pIdentifierList;
-    IdentNode* pIdentNode; 
+    IdentNode* pIdentNode;
     Declarations* pDeclarations;
     VarDecl* pVarDecl;
     TypeNode* pTypeNode;
@@ -110,7 +110,7 @@ union YYSTYPE
     SubprogramDeclarations* pSubprogramDeclarations;
     SubprogramDeclaration* pSubprogramDeclaration;
     SubprogramHead* pSubprogramHead;
-    ArgumentsNode* pArgumentsNode; 
+    ArgumentsNode* pArgumentsNode;
     ParameterList* pParameterList;
     ParameterDeclaration* pParameterDeclaration;
     CompoundStatementNode* pCompoundStatementNode;
@@ -118,7 +118,7 @@ union YYSTYPE
     StatementNode* pStatementNode;
     VariableNode* pVariableNode;
     ProcedureCallStatementNode* pProcedureCallStatementNode;
-    ExprNode* pExprNode;       
+    ExprNode* pExprNode;
     ExpressionList* pExpressionList;
     IntNumNode* pIntNumNode;
     RealNumNode* pRealNumNode;

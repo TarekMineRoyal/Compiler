@@ -3,9 +3,10 @@
 
 #include <vector>
 #include <string>
-#include <list> 
+#include <list>
+#include <iosfwd> // For std::ostream forward declaration
 
-// --- Base Node Class (Define early as it's widely used) ---
+// --- Base Node Class ---
 class Node {
 public:
     int line;
@@ -13,31 +14,35 @@ public:
     Node* father;
     Node(int l, int c);
     virtual ~Node() {}
+    virtual void print(std::ostream& out, int indentLevel = 0) const = 0;
 };
 
-// --- Lexer Helper Original Classes (Full definitions needed by parser.y actions for $1, etc.) ---
-// These are the types the lexer creates. The parser will access their members.
-class Expr : public Node { // Your original Expr, used by Num and RealLit
+// --- Lexer Helper Original Classes ---
+class Expr : public Node {
 public:
     Expr(int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class Ident : public Node {
 public:
     std::string name;
     Ident(const std::string& n, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class Num : public Expr {
 public:
     int value;
     Num(int val, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class RealLit : public Expr {
 public:
     double value;
     RealLit(double val, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 // --- FORWARD DECLARATIONS for main AST structure nodes ---
@@ -75,46 +80,53 @@ class FunctionCallExprNode;
 class ProgramNode;
 
 
-// --- BASE AST NODE CLASSES (after Node is defined) ---
+// --- BASE AST NODE CLASSES ---
 class ExprNode : public Node {
 public:
     ExprNode(int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override; // Basic implementation for abstract base
 };
 
 class StatementNode : public Node {
 public:
     StatementNode(int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override; // Basic implementation for abstract base
 };
 
 class TypeNode : public Node {
 public:
     TypeNode(int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override; // Basic implementation for abstract base
 };
 
-// --- SPECIFIC AST NODE DECLARATIONS (Full Definitions) ---
+// --- SPECIFIC AST NODE DECLARATIONS ---
 
 class IdentNode : public ExprNode {
 public:
     std::string name;
     IdentNode(const std::string& n, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class IntNumNode : public ExprNode {
 public:
     int value;
     IntNumNode(int val, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class RealNumNode : public ExprNode {
 public:
     double value;
     RealNumNode(double val, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class BooleanLiteralNode : public ExprNode {
 public:
     bool value;
     BooleanLiteralNode(bool val, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class IdentifierList : public Node {
@@ -122,6 +134,7 @@ public:
     std::list<IdentNode*> identifiers;
     IdentifierList(IdentNode* firstIdent, int l, int c);
     void addIdentifier(IdentNode* ident);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class StandardTypeNode : public TypeNode {
@@ -129,6 +142,7 @@ public:
     enum TypeCategory { TYPE_INTEGER, TYPE_REAL, TYPE_BOOLEAN };
     TypeCategory category;
     StandardTypeNode(TypeCategory cat, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ArrayTypeNode : public TypeNode {
@@ -137,6 +151,7 @@ public:
     IntNumNode* endIndex;
     StandardTypeNode* elementType;
     ArrayTypeNode(IntNumNode* start, IntNumNode* end, StandardTypeNode* elemType, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class VarDecl : public StatementNode {
@@ -144,13 +159,15 @@ public:
     IdentifierList* identifiers;
     TypeNode* type;
     VarDecl(IdentifierList* ids, TypeNode* t, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class Declarations : public Node {
 public:
     std::list<VarDecl*> var_decl_items;
     Declarations(int l, int c);
-    void addVarDecl(VarDecl* vd); // Declaration for the method
+    void addVarDecl(VarDecl* vd);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ExpressionList : public Node {
@@ -159,6 +176,7 @@ public:
     ExpressionList(int l, int c);
     ExpressionList(ExprNode* firstExpr, int l, int c);
     void addExpression(ExprNode* expr);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ParameterDeclaration : public Node {
@@ -166,6 +184,7 @@ public:
     IdentifierList* ids;
     TypeNode* type;
     ParameterDeclaration(IdentifierList* idList, TypeNode* t, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ParameterList : public Node {
@@ -173,6 +192,7 @@ public:
     std::list<ParameterDeclaration*> paramDeclarations;
     ParameterList(ParameterDeclaration* firstParamDecl, int l, int c);
     void addParameterDeclarationGroup(ParameterDeclaration* paramDecl);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ArgumentsNode : public Node {
@@ -180,6 +200,7 @@ public:
     ParameterList* params;
     ArgumentsNode(int l, int c);
     ArgumentsNode(ParameterList* pList, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class SubprogramHead : public Node {
@@ -188,17 +209,20 @@ public:
     ArgumentsNode* arguments;
     SubprogramHead(IdentNode* n, ArgumentsNode* args, int l, int c);
     virtual ~SubprogramHead() {}
+    void print(std::ostream& out, int indentLevel = 0) const override; // Basic implementation for abstract base
 };
 
 class FunctionHeadNode : public SubprogramHead {
 public:
     StandardTypeNode* returnType;
     FunctionHeadNode(IdentNode* n, ArgumentsNode* args, StandardTypeNode* retType, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ProcedureHeadNode : public SubprogramHead {
 public:
     ProcedureHeadNode(IdentNode* n, ArgumentsNode* args, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class StatementList : public Node {
@@ -207,12 +231,14 @@ public:
     StatementList(int l, int c);
     StatementList(StatementNode* firstStmt, int l, int c);
     void addStatement(StatementNode* stmt);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class CompoundStatementNode : public StatementNode {
 public:
     StatementList* stmts;
     CompoundStatementNode(StatementList* sList, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class SubprogramDeclaration : public Node {
@@ -220,6 +246,7 @@ public:
     SubprogramHead* head;
     CompoundStatementNode* body;
     SubprogramDeclaration(SubprogramHead* h, CompoundStatementNode* b, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class SubprogramDeclarations : public Node {
@@ -227,6 +254,7 @@ public:
     std::list<SubprogramDeclaration*> subprograms;
     SubprogramDeclarations(int l, int c);
     void addSubprogramDeclaration(SubprogramDeclaration* subprog);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class VariableNode : public ExprNode {
@@ -234,6 +262,7 @@ public:
     IdentNode* identifier;
     ExprNode* index;
     VariableNode(IdentNode* id, ExprNode* idx, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class AssignStatementNode : public StatementNode {
@@ -241,6 +270,7 @@ public:
     VariableNode* variable;
     ExprNode* expression;
     AssignStatementNode(VariableNode* var, ExprNode* expr, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class IfStatementNode : public StatementNode {
@@ -249,6 +279,7 @@ public:
     StatementNode* thenStatement;
     StatementNode* elseStatement;
     IfStatementNode(ExprNode* cond, StatementNode* thenStmt, StatementNode* elseStmt, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class WhileStatementNode : public StatementNode {
@@ -256,6 +287,7 @@ public:
     ExprNode* condition;
     StatementNode* body;
     WhileStatementNode(ExprNode* cond, StatementNode* b, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ProcedureCallStatementNode : public StatementNode {
@@ -263,12 +295,14 @@ public:
     IdentNode* procName;
     ExpressionList* arguments;
     ProcedureCallStatementNode(IdentNode* name, ExpressionList* args, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class IdExprNode : public ExprNode {
 public:
     IdentNode* ident;
     IdExprNode(IdentNode* id, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class FunctionCallExprNode : public ExprNode {
@@ -276,6 +310,7 @@ public:
     IdentNode* funcName;
     ExpressionList* arguments;
     FunctionCallExprNode(IdentNode* name, ExpressionList* args, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class BinaryOpNode : public ExprNode {
@@ -284,6 +319,7 @@ public:
     std::string op;
     ExprNode* right;
     BinaryOpNode(ExprNode* l_node, const std::string& oper, ExprNode* r_node, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class UnaryOpNode : public ExprNode {
@@ -291,6 +327,7 @@ public:
     std::string op;
     ExprNode* expression;
     UnaryOpNode(const std::string& oper, ExprNode* expr, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class ProgramNode : public Node {
@@ -300,6 +337,7 @@ public:
     SubprogramDeclarations* subprogs;
     CompoundStatementNode* mainCompoundStmt;
     ProgramNode(IdentNode* name, Declarations* d, SubprogramDeclarations* s, CompoundStatementNode* cStmt, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 #endif // AST_H

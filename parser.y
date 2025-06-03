@@ -1,5 +1,5 @@
 %{
-#include "ast.h" 
+#include "ast.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -12,14 +12,14 @@ extern int yydebug;
 extern int lin;
 extern int col;
 
-ProgramNode *root_ast_node; 
+ProgramNode *root_ast_node;
 %}
 
 %union {
-    Node* pNode; 
+    Node* pNode;
     ProgramNode* pProgramNode;
     IdentifierList* pIdentifierList;
-    IdentNode* pIdentNode; 
+    IdentNode* pIdentNode;
     Declarations* pDeclarations;
     VarDecl* pVarDecl;
     TypeNode* pTypeNode;
@@ -28,7 +28,7 @@ ProgramNode *root_ast_node;
     SubprogramDeclarations* pSubprogramDeclarations;
     SubprogramDeclaration* pSubprogramDeclaration;
     SubprogramHead* pSubprogramHead;
-    ArgumentsNode* pArgumentsNode; 
+    ArgumentsNode* pArgumentsNode;
     ParameterList* pParameterList;
     ParameterDeclaration* pParameterDeclaration;
     CompoundStatementNode* pCompoundStatementNode;
@@ -36,7 +36,7 @@ ProgramNode *root_ast_node;
     StatementNode* pStatementNode;
     VariableNode* pVariableNode;
     ProcedureCallStatementNode* pProcedureCallStatementNode;
-    ExprNode* pExprNode;       
+    ExprNode* pExprNode;
     ExpressionList* pExpressionList;
     IntNumNode* pIntNumNode;
     RealNumNode* pRealNumNode;
@@ -56,53 +56,67 @@ ProgramNode *root_ast_node;
 %token TRUE_KEYWORD FALSE_KEYWORD
 %token PROGRAM VAR ARRAY OF INTEGER_TYPE REAL_TYPE BOOLEAN_TYPE FUNCTION PROCEDURE
 %token BEGIN_TOKEN END_TOKEN IF THEN ELSE WHILE DO NOT_OP AND_OP OR_OP DIV_OP
-%token ASSIGN_OP EQ_OP NEQ_OP LT_OP LTE_OP GT_OP GTE_OP DOTDOT 
+%token ASSIGN_OP EQ_OP NEQ_OP LT_OP LTE_OP GT_OP GTE_OP DOTDOT
 
+// %type declarations for original grammar structure
 %type <pProgramNode> program_rule
 %type <pIdentifierList> identifier_list
-%type <pIdentNode> id_node 
-%type <pDeclarations> declarations var_declaration_list_non_empty 
-%type <pVarDecl> var_declaration_item 
+%type <pIdentNode> id_node
+%type <pDeclarations> declarations var_declaration_list_non_empty
+%type <pVarDecl> var_declaration_item
 %type <pTypeNode> type
 %type <pStandardTypeNode> standard_type
 %type <pIntNumNode> int_num_node
 %type <pRealNumNode> real_num_node
-%type <pSubprogramDeclarations> subprogram_declarations 
-%type <pSubprogramDeclaration> subprogram_declaration_block 
+%type <pSubprogramDeclarations> subprogram_declarations
+%type <pSubprogramDeclaration> subprogram_declaration_block
 %type <pSubprogramDeclaration> subprogram_declaration
 %type <pSubprogramHead> subprogram_head
-%type <pArgumentsNode> arguments 
-%type <pParameterList> parameter_list 
-%type <pParameterDeclaration> parameter_declaration_group 
+%type <pArgumentsNode> arguments
+%type <pParameterList> parameter_list
+%type <pParameterDeclaration> parameter_declaration_group
 %type <pCompoundStatementNode> compound_statement
-%type <pStatementList> optional_statements statement_list statement_list_terminated // Added statement_list_terminated here
+%type <pStatementList> optional_statements statement_list statement_list_terminated
 %type <pStatementNode> statement
 %type <pVariableNode> variable
 %type <pProcedureCallStatementNode> procedure_statement
 %type <pExpressionList> expression_list
-%type <pExprNode> expression simple_expression term factor primary 
 
-%left OR_OP                                            // 1. or (weakest)
-%left AND_OP                                           // 2. and
-%left NOT_OP                                           // 3. not (consider %right NOT_OP if needed, but %left mainly ranks it here)
-%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP       // 4. relational operators (all same level)
-%left '+' '-'                                          // 5. additive operators
-%left '*' '/' DIV_OP                                   // 6. multiplicative operators (strongest of these)
-%right UMINUS                                          // 7. unary minus (highest)
+// NEW: %type declarations for the cascaded expression grammar non-terminals
+//      Your old 'expression', 'simple_expression', 'term', 'factor' %types are replaced by these
+//      for the purpose of building expression ASTs. 'primary' is still used.
+%type <pExprNode> expr logical_or_expr logical_and_expr not_expr relational_expr additive_expr multiplicative_expr unary_expr primary
+
+
+// Operator Precedence and Associativity - This order IS CRUCIAL
+// (Lowest precedence at the top, increasing downwards)
+%left OR_OP                                      // Level 1
+%left AND_OP                                     // Level 2
+// NOT_OP is trickier with a cascade. If NOT_OP rule is `NOT_OP higher_prec_expr`,
+// its precedence is defined by that structure.
+// If we want it ranked globally for S/R conflicts not handled by cascade:
+%left NOT_OP                                     // Level 3 (declared)
+%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP // Level 4 (Relational)
+%left '+' '-'                                    // Level 5 (Additive)
+%left '*' '/' DIV_OP                             // Level 6 (Multiplicative)
+%right UMINUS                                    // Level 7 (Highest unary - for the %prec directive)
+// Note: The cascade itself will primarily define precedence. These declarations
+//       will mostly handle associativity and resolve any remaining ambiguities
+//       if operators of the same effective precedence appear in the same rule.
 
 %nonassoc THEN
-%nonassoc ELSE 
+%nonassoc ELSE
 
 %start program_rule
 
-%% 
+%%
 
 program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement '.'
     { $$ = new ProgramNode($2, $4, $5, $6, lin, col); root_ast_node = $$; }
     ;
 
-id_node: IDENT 
-    { $$ = new IdentNode($1->name, $1->line, $1->column); delete $1; } 
+id_node: IDENT
+    { $$ = new IdentNode($1->name, $1->line, $1->column); delete $1; }
     ;
 
 identifier_list: id_node
@@ -114,31 +128,31 @@ identifier_list: id_node
 declarations: /* empty */
     { $$ = new Declarations(lin, col); }
     | VAR var_declaration_list_non_empty
-    { $$ = $2; } 
+    { $$ = $2; }
     ;
 
 var_declaration_list_non_empty: var_declaration_item
-    { $$ = new Declarations(lin, col); $$->addVarDecl($1); } 
+    { $$ = new Declarations(lin, col); $$->addVarDecl($1); }
     | var_declaration_list_non_empty var_declaration_item
-    { $1->addVarDecl($2); $$ = $1; } 
+    { $1->addVarDecl($2); $$ = $1; }
     ;
 
-var_declaration_item: identifier_list ':' type ';' 
-    { $$ = new VarDecl($1, $3, lin, col); } 
+var_declaration_item: identifier_list ':' type ';'
+    { $$ = new VarDecl($1, $3, lin, col); }
     ;
 
 type: standard_type
-    { $$ = $1; } 
+    { $$ = $1; }
     | ARRAY '[' int_num_node DOTDOT int_num_node ']' OF standard_type
     { $$ = new ArrayTypeNode($3, $5, $8, lin, col); }
     ;
 
-int_num_node: NUM 
-    { $$ = new IntNumNode($1->value, $1->line, $1->column); delete $1; } 
+int_num_node: NUM
+    { $$ = new IntNumNode($1->value, $1->line, $1->column); delete $1; }
     ;
 
-real_num_node: REAL_LITERAL 
-    { $$ = new RealNumNode($1->value, $1->line, $1->column); delete $1; } 
+real_num_node: REAL_LITERAL
+    { $$ = new RealNumNode($1->value, $1->line, $1->column); delete $1; }
     ;
 
 standard_type: INTEGER_TYPE
@@ -151,12 +165,12 @@ standard_type: INTEGER_TYPE
 
 subprogram_declarations: /* empty */
     { $$ = new SubprogramDeclarations(lin, col); }
-    | subprogram_declarations subprogram_declaration_block 
+    | subprogram_declarations subprogram_declaration_block
     { $1->addSubprogramDeclaration($2); $$ = $1; }
     ;
 
-subprogram_declaration_block: subprogram_declaration ';' 
-    { $$ = $1; } 
+subprogram_declaration_block: subprogram_declaration ';'
+    { $$ = $1; }
     ;
 
 subprogram_declaration: subprogram_head compound_statement
@@ -170,141 +184,165 @@ subprogram_head: FUNCTION id_node arguments ':' standard_type ';'
     ;
 
 arguments: /* empty */
-    { $$ = new ArgumentsNode(lin, col); } 
-    | '(' parameter_list ')' 
-    { $$ = new ArgumentsNode($2, lin, col); } 
+    { $$ = new ArgumentsNode(lin, col); }
+    | '(' parameter_list ')'
+    { $$ = new ArgumentsNode($2, lin, col); }
     ;
 
-parameter_list: parameter_declaration_group 
+parameter_list: parameter_declaration_group
     { $$ = new ParameterList($1, lin, col); }
     | parameter_list ';' parameter_declaration_group
     { $1->addParameterDeclarationGroup($3); $$ = $1; }
     ;
 
 parameter_declaration_group: identifier_list ':' type
-    { $$ = new ParameterDeclaration($1, $3, lin, col); } 
+    { $$ = new ParameterDeclaration($1, $3, lin, col); }
     ;
 
 compound_statement: BEGIN_TOKEN optional_statements END_TOKEN
     { $$ = new CompoundStatementNode($2, lin, col); }
     ;
 
-// Modified rules for handling optional trailing semicolon for statements
 optional_statements: /* empty */
-    { $$ = new StatementList(lin, col); } 
-    | statement_list_terminated // Use the new rule here
+    { $$ = new StatementList(lin, col); }
+    | statement_list_terminated
     { $$ = $1; }
     ;
 
 statement_list_terminated: statement_list
-    { $$ = $1; } // A statement list without a trailing semicolon
-    | statement_list ';' // A statement list *with* a trailing semicolon
-    { $$ = $1; /* The list is $1, the semicolon is consumed */ }
+    { $$ = $1; }
+    | statement_list ';'
+    { $$ = $1; }
     ;
 
-// Original statement_list (semicolon as separator, not terminator for the whole list)
 statement_list: statement
-    { $$ = new StatementList(lin, col); $$->addStatement($1); } // Create list with first statement
+    { $$ = new StatementList(lin, col); $$->addStatement($1); }
     | statement_list ';' statement
     { $1->addStatement($3); $$ = $1; }
     ;
-// End of modified statement rules
 
-statement: variable ASSIGN_OP expression
+statement: variable ASSIGN_OP expr  // Use new 'expr' non-terminal
     { $$ = new AssignStatementNode($1, $3, lin, col); }
     | procedure_statement
-    { $$ = $1; } 
+    { $$ = $1; }
     | compound_statement
-    { $$ = $1; } 
-    | IF expression THEN statement %prec THEN 
+    { $$ = $1; }
+    | IF expr THEN statement %prec THEN // Use new 'expr' non-terminal
     { $$ = new IfStatementNode($2, $4, nullptr, lin, col); }
-    | IF expression THEN statement ELSE statement
+    | IF expr THEN statement ELSE statement // Use new 'expr' non-terminal
     { $$ = new IfStatementNode($2, $4, $6, lin, col); }
-    | WHILE expression DO statement
+    | WHILE expr DO statement // Use new 'expr' non-terminal
     { $$ = new WhileStatementNode($2, $4, lin, col); }
     ;
 
 variable: id_node
-    { $$ = new VariableNode($1, nullptr, lin, col); } 
-    | id_node '[' expression ']'
-    { $$ = new VariableNode($1, $3, lin, col); } 
+    { $$ = new VariableNode($1, nullptr, lin, col); }
+    | id_node '[' expr ']' // Use new 'expr' non-terminal for array index
+    { $$ = new VariableNode($1, $3, lin, col); }
     ;
 
 procedure_statement: id_node
-    { $$ = new ProcedureCallStatementNode($1, new ExpressionList(lin,col), lin, col); } 
+    { $$ = new ProcedureCallStatementNode($1, new ExpressionList(lin,col), lin, col); }
     | id_node '(' expression_list ')'
-    { $$ = new ProcedureCallStatementNode($1, $3, lin, col); } 
+    { $$ = new ProcedureCallStatementNode($1, $3, lin, col); }
     ;
 
-expression_list: expression
-    { $$ = new ExpressionList($1, lin, col); $$->addExpression($1); } // Create list with first expression
-    | expression_list ',' expression
+expression_list: expr // Use new 'expr' non-terminal
+    { $$ = new ExpressionList(lin, col); $$->addExpression($1); }
+    | expression_list ',' expr // Use new 'expr' non-terminal
     { $1->addExpression($3); $$ = $1; }
     ;
 
-expression: simple_expression
+// --- NEW CASCADED EXPRESSION GRAMMAR ---
+// This replaces your old 'expression', 'simple_expression', 'term', 'factor' rules
+// for defining operator precedence and structure.
+
+expr: logical_or_expr
     { $$ = $1; }
-    | simple_expression EQ_OP simple_expression
-    { $$ = new BinaryOpNode($1, "EQ_OP", $3, lin, col); }
-    | simple_expression NEQ_OP simple_expression
-    { $$ = new BinaryOpNode($1, "NEQ_OP", $3, lin, col); }
-    | simple_expression LT_OP simple_expression
-    { $$ = new BinaryOpNode($1, "LT_OP", $3, lin, col); }
-    | simple_expression LTE_OP simple_expression
-    { $$ = new BinaryOpNode($1, "LTE_OP", $3, lin, col); }
-    | simple_expression GT_OP simple_expression
-    { $$ = new BinaryOpNode($1, "GT_OP", $3, lin, col); }
-    | simple_expression GTE_OP simple_expression
-    { $$ = new BinaryOpNode($1, "GTE_OP", $3, lin, col); }
     ;
 
-simple_expression: term
-    { $$ = $1; }
-    | simple_expression '+' term
-    { $$ = new BinaryOpNode($1, "+", $3, lin, col); }
-    | simple_expression '-' term
-    { $$ = new BinaryOpNode($1, "-", $3, lin, col); }
-    | simple_expression OR_OP term 
-    { $$ = new BinaryOpNode($1, "OR_OP", $3, lin, col); }
-    ;
+logical_or_expr: logical_and_expr
+                 { $$ = $1; }
+               | logical_or_expr OR_OP logical_and_expr
+                 { $$ = new BinaryOpNode($1, "OR_OP", $3, lin, col); }
+               ;
 
-term: factor
-    { $$ = $1; }
-    | term '*' factor
-    { $$ = new BinaryOpNode($1, "*", $3, lin, col); }
-    | term '/' factor
-    { $$ = new BinaryOpNode($1, "/", $3, lin, col); }
-    | term DIV_OP factor
-    { $$ = new BinaryOpNode($1, "DIV_OP", $3, lin, col); }
-    | term AND_OP factor 
-    { $$ = new BinaryOpNode($1, "AND_OP", $3, lin, col); }
-    ;
+logical_and_expr: not_expr
+                  { $$ = $1; }
+                | logical_and_expr AND_OP not_expr
+                  { $$ = new BinaryOpNode($1, "AND_OP", $3, lin, col); }
+                ;
 
-factor: primary
-    { $$ = $1; }
-    | '-' factor %prec UMINUS
-    { $$ = new UnaryOpNode("-", $2, lin, col); }
-    | NOT_OP factor 
-    { $$ = new UnaryOpNode("NOT_OP", $2, lin, col); }
-    ;
+// To achieve Relational > NOT, NOT must operate on something already stronger or equal to Relational.
+// Or, if NOT is weaker than Relational (as per L3 vs L4), NOT applies to the result of a Relational.
+not_expr: relational_expr
+          { $$ = $1; }
+        | NOT_OP not_expr // Apply NOT to an expression that has already handled relational.
+                          // This makes NOT left-recursive (effectively right-associative for unary)
+                          // and its precedence relative to relational_expr is determined
+                          // by the cascade and the NOT_OP precedence declaration.
+          { $$ = new UnaryOpNode("NOT_OP", $2, lin, col); }
+        ;
 
+relational_expr: additive_expr
+                 { $$ = $1; }
+               | relational_expr EQ_OP additive_expr  // Using left-recursion for left-associativity
+                 { $$ = new BinaryOpNode($1, "EQ_OP", $3, lin, col); }
+               | relational_expr NEQ_OP additive_expr
+                 { $$ = new BinaryOpNode($1, "NEQ_OP", $3, lin, col); }
+               | relational_expr LT_OP additive_expr
+                 { $$ = new BinaryOpNode($1, "LT_OP", $3, lin, col); }
+               | relational_expr LTE_OP additive_expr
+                 { $$ = new BinaryOpNode($1, "LTE_OP", $3, lin, col); }
+               | relational_expr GT_OP additive_expr
+                 { $$ = new BinaryOpNode($1, "GT_OP", $3, lin, col); }
+               | relational_expr GTE_OP additive_expr
+                 { $$ = new BinaryOpNode($1, "GTE_OP", $3, lin, col); }
+               ;
+
+additive_expr: multiplicative_expr
+               { $$ = $1; }
+             | additive_expr '+' multiplicative_expr
+               { $$ = new BinaryOpNode($1, "+", $3, lin, col); }
+             | additive_expr '-' multiplicative_expr
+               { $$ = new BinaryOpNode($1, "-", $3, lin, col); }
+             ;
+
+multiplicative_expr: unary_expr
+                     { $$ = $1; }
+                   | multiplicative_expr '*' unary_expr
+                     { $$ = new BinaryOpNode($1, "*", $3, lin, col); }
+                   | multiplicative_expr '/' unary_expr
+                     { $$ = new BinaryOpNode($1, "/", $3, lin, col); }
+                   | multiplicative_expr DIV_OP unary_expr
+                     { $$ = new BinaryOpNode($1, "DIV_OP", $3, lin, col); }
+                   ;
+
+unary_expr: primary
+            { $$ = $1; }
+          | '-' primary %prec UMINUS // UMINUS applies to a primary expression
+            { $$ = new UnaryOpNode("-", $2, lin, col); }
+          ;
+
+// Primary expressions remain the same as your original 'primary' rule.
+// Note that '(' expression ')' now uses the new top-level 'expr'.
 primary: id_node
-    { $$ = new IdExprNode($1, lin, col); } 
+    { $$ = new IdExprNode($1, lin, col); }
     | int_num_node
-    { $$ = $1; } 
+    { $$ = $1; }
     | real_num_node
-    { $$ = $1; } 
+    { $$ = $1; }
     | TRUE_KEYWORD
     { $$ = new BooleanLiteralNode(true, lin, col); }
     | FALSE_KEYWORD
     { $$ = new BooleanLiteralNode(false, lin, col); }
-    | id_node '(' expression_list ')' 
+    | id_node '(' expression_list ')' // expression_list uses 'expr'
     { $$ = new FunctionCallExprNode($1, $3, lin, col); }
-    | '(' expression ')'
-    { $$ = $2; } 
+    | '(' expr ')' // Parenthesized expression uses the new top-level 'expr'
+    { $$ = $2; }
     ;
 
-%% 
+%%
 
 int yyerror(const char* s) {
     std::cout << "SYNTAX ERROR: " << s << " at line: " << lin << ", Column: " << col << std::endl;
