@@ -326,21 +326,24 @@ unary_expr: primary
 
 // Primary expressions remain the same as your original 'primary' rule.
 // Note that '(' expression ')' now uses the new top-level 'expr'.
-primary: id_node
-    { $$ = new IdExprNode($1, lin, col); }
-    | int_num_node
-    { $$ = $1; }
-    | real_num_node
-    { $$ = $1; }
-    | TRUE_KEYWORD
-    { $$ = new BooleanLiteralNode(true, lin, col); }
-    | FALSE_KEYWORD
-    { $$ = new BooleanLiteralNode(false, lin, col); }
-    | id_node '(' expression_list ')' // expression_list uses 'expr'
-    { $$ = new FunctionCallExprNode($1, $3, lin, col); }
-    | '(' expr ')' // Parenthesized expression uses the new top-level 'expr'
-    { $$ = $2; }
-    ;
+primary: id_node '[' expr ']' // Added for array access in expressions
+           { $$ = new VariableNode($1, $3, $1->line, $1->column); }
+         | id_node '(' expression_list ')' // Function call with ()
+           { $$ = new FunctionCallExprNode($1, $3, $1->line, $1->column); }
+         | id_node // Simple identifier (variable or parameterless function)
+           { $$ = new VariableNode($1, nullptr, $1->line, $1->column); } // Changed to VariableNode
+                                                                         // for consistency
+         | int_num_node
+           { $$ = $1; }
+         | real_num_node
+           { $$ = $1; }
+         | TRUE_KEYWORD
+           { $$ = new BooleanLiteralNode(true, lin, col); }
+         | FALSE_KEYWORD
+           { $$ = new BooleanLiteralNode(false, lin, col); }
+         | '(' expr ')'
+           { $$ = $2; }
+         ;
 
 %%
 
