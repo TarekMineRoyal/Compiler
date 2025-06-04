@@ -78,6 +78,7 @@ class UnaryOpNode;
 class IdExprNode;
 class FunctionCallExprNode;
 class ProgramNode;
+class StringLiteralNode; // Added missing forward declaration
 
 
 // --- BASE AST NODE CLASSES ---
@@ -154,7 +155,7 @@ public:
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
-class VarDecl : public StatementNode {
+class VarDecl : public StatementNode { // Note: Consider if VarDecl should inherit from a different base if it's not strictly a statement
 public:
     IdentifierList* identifiers;
     TypeNode* type;
@@ -168,6 +169,7 @@ public:
     Declarations(int l, int c);
     void addVarDecl(VarDecl* vd);
     void print(std::ostream& out, int indentLevel = 0) const override;
+    bool isEmpty() const; // << ADDED THIS DECLARATION
 };
 
 class ExpressionList : public Node {
@@ -208,8 +210,8 @@ public:
     IdentNode* name;
     ArgumentsNode* arguments;
     SubprogramHead(IdentNode* n, ArgumentsNode* args, int l, int c);
-    virtual ~SubprogramHead() {}
-    void print(std::ostream& out, int indentLevel = 0) const override; // Basic implementation for abstract base
+    virtual ~SubprogramHead() {} // Keep virtual destructor if it's a polymorphic base
+    void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
 class FunctionHeadNode : public SubprogramHead {
@@ -244,8 +246,12 @@ public:
 class SubprogramDeclaration : public Node {
 public:
     SubprogramHead* head;
+    Declarations* local_declarations; // Member already present from your file
     CompoundStatementNode* body;
-    SubprogramDeclaration(SubprogramHead* h, CompoundStatementNode* b, int l, int c);
+
+    // MODIFIED constructor declaration to include local_declarations:
+    SubprogramDeclaration(SubprogramHead* h, Declarations* local_decls, CompoundStatementNode* b, int l, int c);
+
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
@@ -260,7 +266,7 @@ public:
 class VariableNode : public ExprNode {
 public:
     IdentNode* identifier;
-    ExprNode* index;
+    ExprNode* index; // Can be null for non-array variables
     VariableNode(IdentNode* id, ExprNode* idx, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
@@ -277,7 +283,7 @@ class IfStatementNode : public StatementNode {
 public:
     ExprNode* condition;
     StatementNode* thenStatement;
-    StatementNode* elseStatement;
+    StatementNode* elseStatement; // Can be null
     IfStatementNode(ExprNode* cond, StatementNode* thenStmt, StatementNode* elseStmt, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
@@ -298,7 +304,7 @@ public:
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
-class IdExprNode : public ExprNode {
+class IdExprNode : public ExprNode { // Likely for identifiers used as expressions, might be redundant with VariableNode
 public:
     IdentNode* ident;
     IdExprNode(IdentNode* id, int l, int c);
@@ -333,7 +339,7 @@ public:
 class ProgramNode : public Node {
 public:
     IdentNode* progName;
-    Declarations* decls;
+    Declarations* decls; // Global declarations
     SubprogramDeclarations* subprogs;
     CompoundStatementNode* mainCompoundStmt;
     ProgramNode(IdentNode* name, Declarations* d, SubprogramDeclarations* s, CompoundStatementNode* cStmt, int l, int c);
@@ -343,7 +349,7 @@ public:
 class StringLiteralNode : public ExprNode {
 public:
     std::string value;
-    StringLiteralNode(const char* val, int l, int c); // Takes char* from lexer
+    StringLiteralNode(const char* val, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
 

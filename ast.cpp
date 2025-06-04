@@ -135,7 +135,7 @@ void ArrayTypeNode::print(std::ostream& out, int indentLevel) const {
 }
 
 VarDecl::VarDecl(IdentifierList* ids, TypeNode* t, int l, int c)
-    : StatementNode(l, c), identifiers(ids), type(t) {
+    : StatementNode(l, c), identifiers(ids), type(t) { // Note: VarDecl is often not a StatementNode, but a distinct DeclarationNode
     if (identifiers) identifiers->father = this;
     if (type) type->father = this;
 }
@@ -152,6 +152,9 @@ void Declarations::addVarDecl(VarDecl* vd) {
         var_decl_items.push_back(vd);
         vd->father = this;
     }
+}
+bool Declarations::isEmpty() const { // ADDED helper, if needed for print logic elsewhere, or use var_decl_items.empty() directly
+    return var_decl_items.empty();
 }
 void Declarations::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
@@ -171,7 +174,7 @@ ExpressionList::ExpressionList(int l, int c) : Node(l, c) {}
 ExpressionList::ExpressionList(ExprNode* firstExpr, int l, int c) : Node(l, c) {
     if (firstExpr) {
         expressions.push_back(firstExpr);
-        if (firstExpr) firstExpr->father = this; // Should be firstExpr not just this
+        if (firstExpr) firstExpr->father = this;
     }
 }
 void ExpressionList::addExpression(ExprNode* expr) {
@@ -239,7 +242,7 @@ ArgumentsNode::ArgumentsNode(ParameterList* pList, int l, int c) : Node(l, c), p
 void ArgumentsNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "ArgumentsNode (L:" << line << ", C:" << column << ")" << std::endl;
-    if (params && !params->paramDeclarations.empty()) {
+    if (params && !params->paramDeclarations.empty()) { // Check internal list of params
         params->print(out, indentLevel + 1);
     }
     else {
@@ -326,17 +329,51 @@ void CompoundStatementNode::print(std::ostream& out, int indentLevel) const {
     if (stmts) stmts->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Statements: nullptr" << std::endl; }
 }
 
-SubprogramDeclaration::SubprogramDeclaration(SubprogramHead* h, CompoundStatementNode* b, int l, int c)
-    : Node(l, c), head(h), body(b) {
+// --- SubprogramDeclaration MODIFIED ---
+SubprogramDeclaration::SubprogramDeclaration(SubprogramHead* h, Declarations* local_decls, CompoundStatementNode* b, int l, int c) // MODIFIED signature
+    : Node(l, c), head(h), local_declarations(local_decls), body(b) { // MODIFIED to include local_declarations
     if (head) head->father = this;
+    if (local_declarations) local_declarations->father = this; // ADDED father assignment
     if (body) body->father = this;
 }
-void SubprogramDeclaration::print(std::ostream& out, int indentLevel) const {
+
+void SubprogramDeclaration::print(std::ostream& out, int indentLevel) const { // MODIFIED print method
     print_indent(out, indentLevel);
     out << "SubprogramDeclaration (L:" << line << ", C:" << column << ")" << std::endl;
-    if (head) head->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Head: nullptr" << std::endl; }
-    if (body) body->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Body: nullptr" << std::endl; }
+
+    if (head) {
+        head->print(out, indentLevel + 1);
+    }
+    else {
+        print_indent(out, indentLevel + 1); out << "Head: nullptr" << std::endl;
+    }
+
+    // ADDED printing for local_declarations
+    if (local_declarations) { // Check if the pointer is not null
+        // The Declarations::print method already handles being empty gracefully
+        print_indent(out, indentLevel + 1); out << "LocalDeclarations:" << std::endl;
+        local_declarations->print(out, indentLevel + 2);
+    }
+    else {
+        // Optionally print something if local_declarations pointer is null, or just skip
+        // For consistency with how ProgramNode prints its Declarations, we can let Declarations::print handle it
+        // However, ProgramNode directly passes its decls pointer. Here, local_declarations might be genuinely null
+        // if the grammar allows constructing SubprogramDeclaration with a null Declarations* for some reason
+        // (though our current parser.y rule for subprogram_declaration always provides $2 as Declarations*)
+        // A simple check to print "none" if local_declarations is null or effectively empty
+        print_indent(out, indentLevel + 1); out << "LocalDeclarations:" << std::endl;
+        print_indent(out, indentLevel + 2); out << "(None or nullptr)" << std::endl;
+    }
+
+    if (body) {
+        body->print(out, indentLevel + 1);
+    }
+    else {
+        print_indent(out, indentLevel + 1); out << "Body: nullptr" << std::endl;
+    }
 }
+// --- End SubprogramDeclaration MODIFIED ---
+
 
 SubprogramDeclarations::SubprogramDeclarations(int l, int c) : Node(l, c) {}
 void SubprogramDeclarations::addSubprogramDeclaration(SubprogramDeclaration* subprog) {
@@ -524,7 +561,10 @@ void ProgramNode::print(std::ostream& out, int indentLevel) const {
 
 StringLiteralNode::StringLiteralNode(const char* val, int l, int c)
     : ExprNode(l, c), value(val ? val : "") {
-    if (val) free((void*)val); // If lexer malloc'd, parser/AST node takes ownership & frees
+    // if (val) free((void*)val); // This was commented out in a previous version I saw from the user.
+                               // Decided to keep it as is from the user's provided code.
+                               // Proper memory management of str_val from lexer needs care.
+                               // If yylval.str_val is new char[] or strdup, AST should delete[]. If malloc, AST should free.
 }
 void StringLiteralNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);

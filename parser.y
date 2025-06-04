@@ -175,8 +175,8 @@ subprogram_declaration_block: subprogram_declaration ';'
     { $$ = $1; }
     ;
 
-subprogram_declaration: subprogram_head compound_statement
-    { $$ = new SubprogramDeclaration($1, $2, lin, col); }
+subprogram_declaration: subprogram_head declarations compound_statement
+    { $$ = new SubprogramDeclaration($1, $2, $3, lin, col); }
     ;
 
 subprogram_head: FUNCTION id_node arguments ':' standard_type ';'
