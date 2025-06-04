@@ -570,3 +570,23 @@ void StringLiteralNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "StringLiteralNode (Value: \"" << value << "\", L:" << line << ", C:" << column << ")" << std::endl;
 }
+
+ReturnStatementNode::ReturnStatementNode(ExprNode* retVal, int l, int c)
+    : StatementNode(l, c), returnValue(retVal) {
+    if (returnValue) returnValue->father = this;
+}
+void ReturnStatementNode::print(std::ostream& out, int indentLevel) const {
+    print_indent(out, indentLevel); // Assuming your print_indent helper
+    out << "ReturnStatementNode (L:" << line << ", C:" << column << ")" << std::endl;
+
+    if (returnValue) {
+        print_indent(out, indentLevel + 1);
+        out << "ReturnValue:" << std::endl;
+        returnValue->print(out, indentLevel + 2);
+    }
+    else {
+        // Should not happen if grammar is "RETURN expr" for functions
+        print_indent(out, indentLevel + 1);
+        out << "ReturnValue: (nullptr or void return - check grammar)" << std::endl;
+    }
+}

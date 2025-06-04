@@ -78,7 +78,8 @@ class UnaryOpNode;
 class IdExprNode;
 class FunctionCallExprNode;
 class ProgramNode;
-class StringLiteralNode; // Added missing forward declaration
+class StringLiteralNode;
+class ReturnStatementNode;
 
 
 // --- BASE AST NODE CLASSES ---
@@ -351,6 +352,15 @@ public:
     std::string value;
     StringLiteralNode(const char* val, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
+};
+class ReturnStatementNode : public StatementNode {
+public:
+    ExprNode* returnValue; // The expression being returned
+
+    ReturnStatementNode(ExprNode* retVal, int l, int c);
+    void print(std::ostream& out, int indentLevel = 0) const override;
+    // Consider a destructor if returnValue needs to be deleted by this node
+    // virtual ~ReturnStatementNode() { delete returnValue; }
 };
 
 #endif // AST_H

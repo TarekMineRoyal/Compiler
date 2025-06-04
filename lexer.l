@@ -80,6 +80,7 @@ ALPHA   [a-zA-Z]
     "boolean"           { col += yyleng; return BOOLEAN_TYPE; }
     "true"              { col += yyleng; return TRUE_KEYWORD; }
     "false"             { col += yyleng; return FALSE_KEYWORD; }
+    "return"            { col += yyleng; return RETURN_KEYWORD; }
     
     /* --- Literals --- */
     /* Real literals - Using the refined patterns with a single action block. */

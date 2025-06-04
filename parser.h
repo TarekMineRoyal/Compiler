@@ -88,7 +88,8 @@ extern int yydebug;
     GTE_OP = 289,                  /* GTE_OP  */
     DOTDOT = 290,                  /* DOTDOT  */
     STRING_LITERAL = 291,          /* STRING_LITERAL  */
-    UMINUS = 292                   /* UMINUS  */
+    RETURN_KEYWORD = 292,          /* RETURN_KEYWORD  */
+    UMINUS = 293                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -133,7 +134,7 @@ union YYSTYPE
     int token_val;
     char* str_val;
 
-#line 137 "parser.h"
+#line 138 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

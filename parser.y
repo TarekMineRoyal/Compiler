@@ -59,6 +59,7 @@ ProgramNode *root_ast_node;
 %token BEGIN_TOKEN END_TOKEN IF THEN ELSE WHILE DO NOT_OP AND_OP OR_OP DIV_OP
 %token ASSIGN_OP EQ_OP NEQ_OP LT_OP LTE_OP GT_OP GTE_OP DOTDOT
 %token <str_val> STRING_LITERAL
+%token RETURN_KEYWORD
 
 // %type declarations for original grammar structure
 %type <pProgramNode> program_rule
@@ -80,6 +81,7 @@ ProgramNode *root_ast_node;
 %type <pCompoundStatementNode> compound_statement
 %type <pStatementList> optional_statements statement_list statement_list_terminated
 %type <pStatementNode> statement
+%type <pStatementNode> return_statement
 %type <pVariableNode> variable
 %type <pProcedureCallStatementNode> procedure_statement
 %type <pExpressionList> expression_list
@@ -235,6 +237,11 @@ statement: variable ASSIGN_OP expr  // Use new 'expr' non-terminal
     { $$ = new IfStatementNode($2, $4, $6, lin, col); }
     | WHILE expr DO statement // Use new 'expr' non-terminal
     { $$ = new WhileStatementNode($2, $4, lin, col); }
+    | return_statement
+    ;
+
+return_statement: RETURN_KEYWORD expr
+    { $$ = new ReturnStatementNode($2, lin, col); } // $2 is the ExprNode
     ;
 
 variable: id_node
