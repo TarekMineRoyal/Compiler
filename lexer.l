@@ -49,6 +49,20 @@ ALPHA    [a-zA-Z]
                           col += yyleng;           // Advance past '{'
                           BEGIN(ML_COMMENT);
                         }
+    /* Quotes */
+    \'([^'\n\\]|\\.)*\'   { 
+                        /* Extract the string content (without outer quotes) */
+                        /* Potentially handle escape sequences like \' or \\ */
+                        /* Store it in yylval.str_val (you have char* str_val in your union) */
+                        /* For example: */
+                        int len = yyleng - 2; /* Length without quotes */
+                        char* s = (char*)malloc(len + 1);
+                        strncpy(s, yytext + 1, len);
+                        s[len] = '\0';
+                        /* Further processing for escapes if needed */
+                        yylval.str_val = s; 
+                        return STRING_LITERAL; 
+                      }
 
     /* Keywords */
     "program"           { int token_col = col; col += yyleng; return PROGRAM; }

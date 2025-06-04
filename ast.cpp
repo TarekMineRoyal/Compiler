@@ -521,3 +521,12 @@ void ProgramNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel + 1); out << "MainCompoundStatement:" << std::endl;
     if (mainCompoundStmt) mainCompoundStmt->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
+
+StringLiteralNode::StringLiteralNode(const char* val, int l, int c)
+    : ExprNode(l, c), value(val ? val : "") {
+    if (val) free((void*)val); // If lexer malloc'd, parser/AST node takes ownership & frees
+}
+void StringLiteralNode::print(std::ostream& out, int indentLevel) const {
+    print_indent(out, indentLevel);
+    out << "StringLiteralNode (Value: \"" << value << "\", L:" << line << ", C:" << column << ")" << std::endl;
+}

@@ -340,4 +340,11 @@ public:
     void print(std::ostream& out, int indentLevel = 0) const override;
 };
 
+class StringLiteralNode : public ExprNode {
+public:
+    std::string value;
+    StringLiteralNode(const char* val, int l, int c); // Takes char* from lexer
+    void print(std::ostream& out, int indentLevel = 0) const override;
+};
+
 #endif // AST_H

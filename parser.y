@@ -41,6 +41,7 @@ ProgramNode *root_ast_node;
     IntNumNode* pIntNumNode;
     RealNumNode* pRealNumNode;
     BooleanLiteralNode* pBooleanLiteralNode;
+    StringLiteralNode* pStringLiteralNode;
 
     Num* rawNum;
     RealLit* rawRealLit;
@@ -57,6 +58,7 @@ ProgramNode *root_ast_node;
 %token PROGRAM VAR ARRAY OF INTEGER_TYPE REAL_TYPE BOOLEAN_TYPE FUNCTION PROCEDURE
 %token BEGIN_TOKEN END_TOKEN IF THEN ELSE WHILE DO NOT_OP AND_OP OR_OP DIV_OP
 %token ASSIGN_OP EQ_OP NEQ_OP LT_OP LTE_OP GT_OP GTE_OP DOTDOT
+%token <str_val> STRING_LITERAL
 
 // %type declarations for original grammar structure
 %type <pProgramNode> program_rule
@@ -343,7 +345,9 @@ primary: id_node '[' expr ']' // Added for array access in expressions
            { $$ = new BooleanLiteralNode(false, lin, col); }
          | '(' expr ')'
            { $$ = $2; }
-         ;
+         | STRING_LITERAL 
+         { $$ = new StringLiteralNode($1, lin, col); /* or appropriate line/col from token if available */ }
+       ;
 
 %%
 

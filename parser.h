@@ -87,7 +87,8 @@ extern int yydebug;
     GT_OP = 288,                   /* GT_OP  */
     GTE_OP = 289,                  /* GTE_OP  */
     DOTDOT = 290,                  /* DOTDOT  */
-    UMINUS = 291                   /* UMINUS  */
+    STRING_LITERAL = 291,          /* STRING_LITERAL  */
+    UMINUS = 292                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -123,6 +124,7 @@ union YYSTYPE
     IntNumNode* pIntNumNode;
     RealNumNode* pRealNumNode;
     BooleanLiteralNode* pBooleanLiteralNode;
+    StringLiteralNode* pStringLiteralNode;
 
     Num* rawNum;
     RealLit* rawRealLit;
@@ -131,7 +133,7 @@ union YYSTYPE
     int token_val;
     char* str_val;
 
-#line 135 "parser.h"
+#line 137 "parser.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
