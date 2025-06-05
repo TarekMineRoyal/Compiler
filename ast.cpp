@@ -1,7 +1,8 @@
 #include "ast.h"
 #include <iostream> // For std::cout, std::endl, etc.
+// #include "semantic_visitor.h" // Not needed here if ast.h includes it
 
-// Helper function for indentation
+// Helper function for indentation (already present)
 static void print_indent(std::ostream& out, int indentLevel) {
     for (int i = 0; i < indentLevel; ++i) {
         out << "  "; // 2 spaces per indent level
@@ -10,7 +11,8 @@ static void print_indent(std::ostream& out, int indentLevel) {
 
 // --- Base Node Class Implementation ---
 Node::Node(int l, int c) : line(l), column(c), father(nullptr) {}
-// Node::print is pure virtual, so no implementation in Node itself.
+// Node::print is pure virtual
+// Node::accept is pure virtual
 
 // --- Lexer Helper Original Classes Implementations ---
 Expr::Expr(int l, int c) : Node(l, c) {}
@@ -18,31 +20,40 @@ void Expr::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "Lexer::Expr (L:" << line << ", C:" << column << ") (Should not be in final AST)" << std::endl;
 }
+void Expr::accept(SemanticVisitor& visitor) { /* Stub, see ast.h notes */ }
 
 Ident::Ident(const std::string& n, int l, int c) : Node(l, c), name(n) {}
 void Ident::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "Lexer::Ident (Name: " << name << ", L:" << line << ", C:" << column << ") (Should not be in final AST)" << std::endl;
 }
+void Ident::accept(SemanticVisitor& visitor) { /* Stub */ }
 
 Num::Num(int val, int l, int c) : Expr(l, c), value(val) {}
 void Num::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "Lexer::Num (Value: " << value << ", L:" << line << ", C:" << column << ") (Should not be in final AST)" << std::endl;
 }
+void Num::accept(SemanticVisitor& visitor) { /* Stub */ }
 
 RealLit::RealLit(double val, int l, int c) : Expr(l, c), value(val) {}
 void RealLit::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "Lexer::RealLit (Value: " << value << ", L:" << line << ", C:" << column << ") (Should not be in final AST)" << std::endl;
 }
+void RealLit::accept(SemanticVisitor& visitor) { /* Stub */ }
 
 
 // --- BASE AST NODE Implementations ---
-ExprNode::ExprNode(int l, int c) : Node(l, c) {}
+ExprNode::ExprNode(int l, int c) : Node(l, c), determinedType(EntryTypeCategory::UNKNOWN_TYPE) {
+    determinedArrayDetails.isInitialized = false; // Initialize array details
+}
 void ExprNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
-    out << "ExprNode (Base) (L:" << line << ", C:" << column << ")" << std::endl;
+    out << "ExprNode (Base) (L:" << line << ", C:" << column << ")";
+    // Optionally print determinedType for debugging if it's set
+    // out << " [Type: " << entryTypeToString(determinedType) << "]";
+    out << std::endl;
 }
 
 StatementNode::StatementNode(int l, int c) : Node(l, c) {}
@@ -57,32 +68,76 @@ void TypeNode::print(std::ostream& out, int indentLevel) const {
     out << "TypeNode (Base) (L:" << line << ", C:" << column << ")" << std::endl;
 }
 
-// --- SPECIFIC AST NODE Implementations ---
+// --- SPECIFIC AST NODE Implementations (accept methods) ---
+void IdentNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void IntNumNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void RealNumNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void BooleanLiteralNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void StringLiteralNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void IdentifierList::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void StandardTypeNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ArrayTypeNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void VarDecl::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void Declarations::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ExpressionList::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ParameterDeclaration::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ParameterList::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ArgumentsNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void FunctionHeadNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ProcedureHeadNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void StatementList::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void CompoundStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void SubprogramDeclaration::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void SubprogramDeclarations::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void VariableNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void AssignStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void IfStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void WhileStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ProcedureCallStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void IdExprNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void FunctionCallExprNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void BinaryOpNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void UnaryOpNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ReturnStatementNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
+void ProgramNode::accept(SemanticVisitor& visitor) { visitor.visit(*this); }
 
+// (IdentNode print)
 IdentNode::IdentNode(const std::string& n, int l, int c) : ExprNode(l, c), name(n) {}
 void IdentNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "IdentNode (Name: " << name << ", L:" << line << ", C:" << column << ")" << std::endl;
 }
 
+// (IntNumNode print)
 IntNumNode::IntNumNode(int val, int l, int c) : ExprNode(l, c), value(val) {}
 void IntNumNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "IntNumNode (Value: " << value << ", L:" << line << ", C:" << column << ")" << std::endl;
 }
 
+// (RealNumNode print)
 RealNumNode::RealNumNode(double val, int l, int c) : ExprNode(l, c), value(val) {}
 void RealNumNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "RealNumNode (Value: " << value << ", L:" << line << ", C:" << column << ")" << std::endl;
 }
 
+// (BooleanLiteralNode print)
 BooleanLiteralNode::BooleanLiteralNode(bool val, int l, int c) : ExprNode(l, c), value(val) {}
 void BooleanLiteralNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "BooleanLiteralNode (Value: " << (value ? "true" : "false") << ", L:" << line << ", C:" << column << ")" << std::endl;
 }
 
+// (StringLiteralNode print)
+StringLiteralNode::StringLiteralNode(const char* val, int l, int c)
+    : ExprNode(l, c), value(val ? val : "") {}
+void StringLiteralNode::print(std::ostream& out, int indentLevel) const {
+    print_indent(out, indentLevel);
+    out << "StringLiteralNode (Value: \"" << value << "\", L:" << line << ", C:" << column << ")" << std::endl;
+}
+
+// (IdentifierList print)
 IdentifierList::IdentifierList(IdentNode* firstIdent, int l, int c) : Node(l, c) {
     if (firstIdent) {
         identifiers.push_back(firstIdent);
@@ -103,6 +158,7 @@ void IdentifierList::print(std::ostream& out, int indentLevel) const {
     }
 }
 
+// (StandardTypeNode print)
 StandardTypeNode::StandardTypeNode(StandardTypeNode::TypeCategory cat, int l, int c)
     : TypeNode(l, c), category(cat) {}
 void StandardTypeNode::print(std::ostream& out, int indentLevel) const {
@@ -117,6 +173,7 @@ void StandardTypeNode::print(std::ostream& out, int indentLevel) const {
     out << ", L:" << line << ", C:" << column << ")" << std::endl;
 }
 
+// (ArrayTypeNode print)
 ArrayTypeNode::ArrayTypeNode(IntNumNode* start, IntNumNode* end, StandardTypeNode* elemType, int l, int c)
     : TypeNode(l, c), startIndex(start), endIndex(end), elementType(elemType) {
     if (startIndex) startIndex->father = this;
@@ -134,8 +191,9 @@ void ArrayTypeNode::print(std::ostream& out, int indentLevel) const {
     if (elementType) elementType->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
+// (VarDecl print)
 VarDecl::VarDecl(IdentifierList* ids, TypeNode* t, int l, int c)
-    : StatementNode(l, c), identifiers(ids), type(t) { // Note: VarDecl is often not a StatementNode, but a distinct DeclarationNode
+    : StatementNode(l, c), identifiers(ids), type(t) {
     if (identifiers) identifiers->father = this;
     if (type) type->father = this;
 }
@@ -146,6 +204,7 @@ void VarDecl::print(std::ostream& out, int indentLevel) const {
     if (type) type->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Type: nullptr" << std::endl; }
 }
 
+// (Declarations print)
 Declarations::Declarations(int l, int c) : Node(l, c) {}
 void Declarations::addVarDecl(VarDecl* vd) {
     if (vd) {
@@ -153,7 +212,7 @@ void Declarations::addVarDecl(VarDecl* vd) {
         vd->father = this;
     }
 }
-bool Declarations::isEmpty() const { // ADDED helper, if needed for print logic elsewhere, or use var_decl_items.empty() directly
+bool Declarations::isEmpty() const {
     return var_decl_items.empty();
 }
 void Declarations::print(std::ostream& out, int indentLevel) const {
@@ -164,12 +223,13 @@ void Declarations::print(std::ostream& out, int indentLevel) const {
         out << "(No variable declarations)" << std::endl;
     }
     else {
-        for (VarDecl* vd : var_decl_items) {
-            if (vd) vd->print(out, indentLevel + 1);
+        for (VarDecl* vd_item : var_decl_items) { // Changed var name
+            if (vd_item) vd_item->print(out, indentLevel + 1);
         }
     }
 }
 
+// (ExpressionList print)
 ExpressionList::ExpressionList(int l, int c) : Node(l, c) {}
 ExpressionList::ExpressionList(ExprNode* firstExpr, int l, int c) : Node(l, c) {
     if (firstExpr) {
@@ -191,12 +251,13 @@ void ExpressionList::print(std::ostream& out, int indentLevel) const {
         out << "(Empty)" << std::endl;
     }
     else {
-        for (ExprNode* expr : expressions) {
-            if (expr) expr->print(out, indentLevel + 1);
+        for (ExprNode* expr_node : expressions) {
+            if (expr_node) expr_node->print(out, indentLevel + 1);
         }
     }
 }
 
+// (ParameterDeclaration print)
 ParameterDeclaration::ParameterDeclaration(IdentifierList* idList, TypeNode* t, int l, int c)
     : Node(l, c), ids(idList), type(t) {
     if (ids) ids->father = this;
@@ -209,6 +270,7 @@ void ParameterDeclaration::print(std::ostream& out, int indentLevel) const {
     if (type) type->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Type: nullptr" << std::endl; }
 }
 
+// (ParameterList print)
 ParameterList::ParameterList(ParameterDeclaration* firstParamDecl, int l, int c) : Node(l, c) {
     if (firstParamDecl) {
         paramDeclarations.push_back(firstParamDecl);
@@ -229,12 +291,13 @@ void ParameterList::print(std::ostream& out, int indentLevel) const {
         out << "(No parameters)" << std::endl;
     }
     else {
-        for (ParameterDeclaration* pd : paramDeclarations) {
-            if (pd) pd->print(out, indentLevel + 1);
+        for (ParameterDeclaration* pd_item : paramDeclarations) { // Changed var name
+            if (pd_item) pd_item->print(out, indentLevel + 1);
         }
     }
 }
 
+// (ArgumentsNode print)
 ArgumentsNode::ArgumentsNode(int l, int c) : Node(l, c), params(nullptr) {}
 ArgumentsNode::ArgumentsNode(ParameterList* pList, int l, int c) : Node(l, c), params(pList) {
     if (params) params->father = this;
@@ -242,7 +305,7 @@ ArgumentsNode::ArgumentsNode(ParameterList* pList, int l, int c) : Node(l, c), p
 void ArgumentsNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "ArgumentsNode (L:" << line << ", C:" << column << ")" << std::endl;
-    if (params && !params->paramDeclarations.empty()) { // Check internal list of params
+    if (params && !params->paramDeclarations.empty()) {
         params->print(out, indentLevel + 1);
     }
     else {
@@ -251,6 +314,7 @@ void ArgumentsNode::print(std::ostream& out, int indentLevel) const {
     }
 }
 
+// (SubprogramHead print)
 SubprogramHead::SubprogramHead(IdentNode* n, ArgumentsNode* args_in, int l, int c)
     : Node(l, c), name(n), arguments(args_in) {
     if (name) name->father = this;
@@ -265,7 +329,7 @@ void SubprogramHead::print(std::ostream& out, int indentLevel) const {
     if (arguments) arguments->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
-
+// (FunctionHeadNode print)
 FunctionHeadNode::FunctionHeadNode(IdentNode* n, ArgumentsNode* args_in, StandardTypeNode* retType, int l, int c)
     : SubprogramHead(n, args_in, l, c), returnType(retType) {
     if (returnType) returnType->father = this;
@@ -281,6 +345,7 @@ void FunctionHeadNode::print(std::ostream& out, int indentLevel) const {
     if (returnType) returnType->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
+// (ProcedureHeadNode print)
 ProcedureHeadNode::ProcedureHeadNode(IdentNode* n, ArgumentsNode* args_in, int l, int c)
     : SubprogramHead(n, args_in, l, c) {}
 void ProcedureHeadNode::print(std::ostream& out, int indentLevel) const {
@@ -292,6 +357,7 @@ void ProcedureHeadNode::print(std::ostream& out, int indentLevel) const {
     if (arguments) arguments->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
+// (StatementList print)
 StatementList::StatementList(int l, int c) : Node(l, c) {}
 StatementList::StatementList(StatementNode* firstStmt, int l, int c) : Node(l, c) {
     if (firstStmt) {
@@ -313,12 +379,13 @@ void StatementList::print(std::ostream& out, int indentLevel) const {
         out << "(Empty)" << std::endl;
     }
     else {
-        for (StatementNode* stmt : statements) {
-            if (stmt) stmt->print(out, indentLevel + 1);
+        for (StatementNode* stmt_item : statements) { // Changed var name
+            if (stmt_item) stmt_item->print(out, indentLevel + 1);
         }
     }
 }
 
+// (CompoundStatementNode print)
 CompoundStatementNode::CompoundStatementNode(StatementList* sList, int l, int c)
     : StatementNode(l, c), stmts(sList) {
     if (stmts) stmts->father = this;
@@ -329,52 +396,31 @@ void CompoundStatementNode::print(std::ostream& out, int indentLevel) const {
     if (stmts) stmts->print(out, indentLevel + 1); else { print_indent(out, indentLevel + 1); out << "Statements: nullptr" << std::endl; }
 }
 
-// --- SubprogramDeclaration MODIFIED ---
-SubprogramDeclaration::SubprogramDeclaration(SubprogramHead* h, Declarations* local_decls, CompoundStatementNode* b, int l, int c) // MODIFIED signature
-    : Node(l, c), head(h), local_declarations(local_decls), body(b) { // MODIFIED to include local_declarations
+// (SubprogramDeclaration print)
+SubprogramDeclaration::SubprogramDeclaration(SubprogramHead* h, Declarations* local_decls, CompoundStatementNode* b, int l, int c)
+    : Node(l, c), head(h), local_declarations(local_decls), body(b) {
     if (head) head->father = this;
-    if (local_declarations) local_declarations->father = this; // ADDED father assignment
+    if (local_declarations) local_declarations->father = this;
     if (body) body->father = this;
 }
-
-void SubprogramDeclaration::print(std::ostream& out, int indentLevel) const { // MODIFIED print method
+void SubprogramDeclaration::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "SubprogramDeclaration (L:" << line << ", C:" << column << ")" << std::endl;
-
-    if (head) {
-        head->print(out, indentLevel + 1);
-    }
-    else {
-        print_indent(out, indentLevel + 1); out << "Head: nullptr" << std::endl;
-    }
-
-    // ADDED printing for local_declarations
-    if (local_declarations) { // Check if the pointer is not null
-        // The Declarations::print method already handles being empty gracefully
+    if (head) { head->print(out, indentLevel + 1); }
+    else { print_indent(out, indentLevel + 1); out << "Head: nullptr" << std::endl; }
+    if (local_declarations) {
         print_indent(out, indentLevel + 1); out << "LocalDeclarations:" << std::endl;
         local_declarations->print(out, indentLevel + 2);
     }
     else {
-        // Optionally print something if local_declarations pointer is null, or just skip
-        // For consistency with how ProgramNode prints its Declarations, we can let Declarations::print handle it
-        // However, ProgramNode directly passes its decls pointer. Here, local_declarations might be genuinely null
-        // if the grammar allows constructing SubprogramDeclaration with a null Declarations* for some reason
-        // (though our current parser.y rule for subprogram_declaration always provides $2 as Declarations*)
-        // A simple check to print "none" if local_declarations is null or effectively empty
         print_indent(out, indentLevel + 1); out << "LocalDeclarations:" << std::endl;
         print_indent(out, indentLevel + 2); out << "(None or nullptr)" << std::endl;
     }
-
-    if (body) {
-        body->print(out, indentLevel + 1);
-    }
-    else {
-        print_indent(out, indentLevel + 1); out << "Body: nullptr" << std::endl;
-    }
+    if (body) { body->print(out, indentLevel + 1); }
+    else { print_indent(out, indentLevel + 1); out << "Body: nullptr" << std::endl; }
 }
-// --- End SubprogramDeclaration MODIFIED ---
 
-
+// (SubprogramDeclarations print)
 SubprogramDeclarations::SubprogramDeclarations(int l, int c) : Node(l, c) {}
 void SubprogramDeclarations::addSubprogramDeclaration(SubprogramDeclaration* subprog) {
     if (subprog) {
@@ -390,12 +436,13 @@ void SubprogramDeclarations::print(std::ostream& out, int indentLevel) const {
         out << "(No subprogram declarations)" << std::endl;
     }
     else {
-        for (SubprogramDeclaration* sub : subprograms) {
-            if (sub) sub->print(out, indentLevel + 1);
+        for (SubprogramDeclaration* sub_item : subprograms) { // Changed var name
+            if (sub_item) sub_item->print(out, indentLevel + 1);
         }
     }
 }
 
+// (VariableNode print)
 VariableNode::VariableNode(IdentNode* id, ExprNode* idx, int l, int c)
     : ExprNode(l, c), identifier(id), index(idx) {
     if (identifier) identifier->father = this;
@@ -412,6 +459,7 @@ void VariableNode::print(std::ostream& out, int indentLevel) const {
     }
 }
 
+// (AssignStatementNode print)
 AssignStatementNode::AssignStatementNode(VariableNode* var, ExprNode* expr, int l, int c)
     : StatementNode(l, c), variable(var), expression(expr) {
     if (variable) variable->father = this;
@@ -426,6 +474,7 @@ void AssignStatementNode::print(std::ostream& out, int indentLevel) const {
     if (expression) expression->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
+// (IfStatementNode print)
 IfStatementNode::IfStatementNode(ExprNode* cond, StatementNode* thenStmt, StatementNode* elseStmt, int l, int c)
     : StatementNode(l, c), condition(cond), thenStatement(thenStmt), elseStatement(elseStmt) {
     if (condition) condition->father = this;
@@ -448,6 +497,7 @@ void IfStatementNode::print(std::ostream& out, int indentLevel) const {
     }
 }
 
+// (WhileStatementNode print)
 WhileStatementNode::WhileStatementNode(ExprNode* cond, StatementNode* b, int l, int c)
     : StatementNode(l, c), condition(cond), body(b) {
     if (condition) condition->father = this;
@@ -462,8 +512,9 @@ void WhileStatementNode::print(std::ostream& out, int indentLevel) const {
     if (body) body->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
-ProcedureCallStatementNode::ProcedureCallStatementNode(IdentNode* name, ExpressionList* args, int l, int c)
-    : StatementNode(l, c), procName(name), arguments(args) {
+// (ProcedureCallStatementNode print)
+ProcedureCallStatementNode::ProcedureCallStatementNode(IdentNode* name_node, ExpressionList* args, int l, int c)
+    : StatementNode(l, c), procName(name_node), arguments(args) {
     if (procName) procName->father = this;
     if (arguments) arguments->father = this;
 }
@@ -481,6 +532,7 @@ void ProcedureCallStatementNode::print(std::ostream& out, int indentLevel) const
     }
 }
 
+// (IdExprNode print)
 IdExprNode::IdExprNode(IdentNode* id_node, int l, int c) : ExprNode(l, c), ident(id_node) {
     if (ident) ident->father = this;
 }
@@ -491,8 +543,9 @@ void IdExprNode::print(std::ostream& out, int indentLevel) const {
     if (ident) ident->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
-FunctionCallExprNode::FunctionCallExprNode(IdentNode* name, ExpressionList* args, int l, int c)
-    : ExprNode(l, c), funcName(name), arguments(args) {
+// (FunctionCallExprNode print)
+FunctionCallExprNode::FunctionCallExprNode(IdentNode* name_node, ExpressionList* args, int l, int c)
+    : ExprNode(l, c), funcName(name_node), arguments(args) {
     if (funcName) funcName->father = this;
     if (arguments) arguments->father = this;
 }
@@ -510,6 +563,7 @@ void FunctionCallExprNode::print(std::ostream& out, int indentLevel) const {
     }
 }
 
+// (BinaryOpNode print)
 BinaryOpNode::BinaryOpNode(ExprNode* l_node, const std::string& oper, ExprNode* r_node, int l, int c)
     : ExprNode(l, c), left(l_node), op(oper), right(r_node) {
     if (left) left->father = this;
@@ -524,6 +578,7 @@ void BinaryOpNode::print(std::ostream& out, int indentLevel) const {
     if (right) right->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
+// (UnaryOpNode print)
 UnaryOpNode::UnaryOpNode(const std::string& oper, ExprNode* expr, int l, int c)
     : ExprNode(l, c), op(oper), expression(expr) {
     if (expression) expression->father = this;
@@ -535,8 +590,28 @@ void UnaryOpNode::print(std::ostream& out, int indentLevel) const {
     if (expression) expression->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
 }
 
-ProgramNode::ProgramNode(IdentNode* name, Declarations* d, SubprogramDeclarations* s, CompoundStatementNode* cStmt, int l, int c)
-    : Node(l, c), progName(name), decls(d), subprogs(s), mainCompoundStmt(cStmt) {
+// (ReturnStatementNode print)
+ReturnStatementNode::ReturnStatementNode(ExprNode* retVal, int l, int c)
+    : StatementNode(l, c), returnValue(retVal) {
+    if (returnValue) returnValue->father = this;
+}
+void ReturnStatementNode::print(std::ostream& out, int indentLevel) const {
+    print_indent(out, indentLevel);
+    out << "ReturnStatementNode (L:" << line << ", C:" << column << ")" << std::endl;
+    if (returnValue) {
+        print_indent(out, indentLevel + 1);
+        out << "ReturnValue:" << std::endl;
+        returnValue->print(out, indentLevel + 2);
+    }
+    else {
+        print_indent(out, indentLevel + 1);
+        out << "ReturnValue: (nullptr or void return - check grammar)" << std::endl;
+    }
+}
+
+// (ProgramNode print)
+ProgramNode::ProgramNode(IdentNode* name_node, Declarations* d, SubprogramDeclarations* s, CompoundStatementNode* cStmt, int l, int c)
+    : Node(l, c), progName(name_node), decls(d), subprogs(s), mainCompoundStmt(cStmt) {
     if (progName) progName->father = this;
     if (decls) decls->father = this;
     if (subprogs) subprogs->father = this;
@@ -545,48 +620,12 @@ ProgramNode::ProgramNode(IdentNode* name, Declarations* d, SubprogramDeclaration
 void ProgramNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "ProgramNode (L:" << line << ", C:" << column << ")" << std::endl;
-
     print_indent(out, indentLevel + 1); out << "ProgramName:" << std::endl;
     if (progName) progName->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
-
     print_indent(out, indentLevel + 1); out << "Declarations:" << std::endl;
     if (decls) decls->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
-
     print_indent(out, indentLevel + 1); out << "SubprogramDeclarations:" << std::endl;
     if (subprogs) subprogs->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
-
     print_indent(out, indentLevel + 1); out << "MainCompoundStatement:" << std::endl;
     if (mainCompoundStmt) mainCompoundStmt->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
-}
-
-StringLiteralNode::StringLiteralNode(const char* val, int l, int c)
-    : ExprNode(l, c), value(val ? val : "") {
-    // if (val) free((void*)val); // This was commented out in a previous version I saw from the user.
-                               // Decided to keep it as is from the user's provided code.
-                               // Proper memory management of str_val from lexer needs care.
-                               // If yylval.str_val is new char[] or strdup, AST should delete[]. If malloc, AST should free.
-}
-void StringLiteralNode::print(std::ostream& out, int indentLevel) const {
-    print_indent(out, indentLevel);
-    out << "StringLiteralNode (Value: \"" << value << "\", L:" << line << ", C:" << column << ")" << std::endl;
-}
-
-ReturnStatementNode::ReturnStatementNode(ExprNode* retVal, int l, int c)
-    : StatementNode(l, c), returnValue(retVal) {
-    if (returnValue) returnValue->father = this;
-}
-void ReturnStatementNode::print(std::ostream& out, int indentLevel) const {
-    print_indent(out, indentLevel); // Assuming your print_indent helper
-    out << "ReturnStatementNode (L:" << line << ", C:" << column << ")" << std::endl;
-
-    if (returnValue) {
-        print_indent(out, indentLevel + 1);
-        out << "ReturnValue:" << std::endl;
-        returnValue->print(out, indentLevel + 2);
-    }
-    else {
-        // Should not happen if grammar is "RETURN expr" for functions
-        print_indent(out, indentLevel + 1);
-        out << "ReturnValue: (nullptr or void return - check grammar)" << std::endl;
-    }
 }
