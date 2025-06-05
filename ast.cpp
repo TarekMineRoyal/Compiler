@@ -1,8 +1,7 @@
 #include "ast.h"
 #include <iostream> // For std::cout, std::endl, etc.
-// #include "semantic_visitor.h" // Not needed here if ast.h includes it
 
-// Helper function for indentation (already present)
+// Helper function for indentation
 static void print_indent(std::ostream& out, int indentLevel) {
     for (int i = 0; i < indentLevel; ++i) {
         out << "  "; // 2 spaces per indent level
@@ -20,7 +19,7 @@ void Expr::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "Lexer::Expr (L:" << line << ", C:" << column << ") (Should not be in final AST)" << std::endl;
 }
-void Expr::accept(SemanticVisitor& visitor) { /* Stub, see ast.h notes */ }
+void Expr::accept(SemanticVisitor& visitor) { /* Stub */ }
 
 Ident::Ident(const std::string& n, int l, int c) : Node(l, c), name(n) {}
 void Ident::print(std::ostream& out, int indentLevel) const {
@@ -51,8 +50,6 @@ ExprNode::ExprNode(int l, int c) : Node(l, c), determinedType(EntryTypeCategory:
 void ExprNode::print(std::ostream& out, int indentLevel) const {
     print_indent(out, indentLevel);
     out << "ExprNode (Base) (L:" << line << ", C:" << column << ")";
-    // Optionally print determinedType for debugging if it's set
-    // out << " [Type: " << entryTypeToString(determinedType) << "]";
     out << std::endl;
 }
 
@@ -223,7 +220,7 @@ void Declarations::print(std::ostream& out, int indentLevel) const {
         out << "(No variable declarations)" << std::endl;
     }
     else {
-        for (VarDecl* vd_item : var_decl_items) { // Changed var name
+        for (VarDecl* vd_item : var_decl_items) {
             if (vd_item) vd_item->print(out, indentLevel + 1);
         }
     }
@@ -291,7 +288,7 @@ void ParameterList::print(std::ostream& out, int indentLevel) const {
         out << "(No parameters)" << std::endl;
     }
     else {
-        for (ParameterDeclaration* pd_item : paramDeclarations) { // Changed var name
+        for (ParameterDeclaration* pd_item : paramDeclarations) {
             if (pd_item) pd_item->print(out, indentLevel + 1);
         }
     }
@@ -379,7 +376,7 @@ void StatementList::print(std::ostream& out, int indentLevel) const {
         out << "(Empty)" << std::endl;
     }
     else {
-        for (StatementNode* stmt_item : statements) { // Changed var name
+        for (StatementNode* stmt_item : statements) {
             if (stmt_item) stmt_item->print(out, indentLevel + 1);
         }
     }
@@ -436,7 +433,7 @@ void SubprogramDeclarations::print(std::ostream& out, int indentLevel) const {
         out << "(No subprogram declarations)" << std::endl;
     }
     else {
-        for (SubprogramDeclaration* sub_item : subprograms) { // Changed var name
+        for (SubprogramDeclaration* sub_item : subprograms) {
             if (sub_item) sub_item->print(out, indentLevel + 1);
         }
     }

@@ -1,4 +1,3 @@
-// symbol_table.h
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
 
@@ -22,7 +21,6 @@ public:
     // Each pair: <ParameterType, ParameterArrayDetails (valid if ParameterType is ARRAY)>
     std::vector<std::pair<EntryTypeCategory, ArrayDetails>> formalParameterSignature;
     // numParameters can be derived from formalParameterSignature.size() if populated.
-    // Let's keep numParameters for quick access, ensure it's consistent.
     size_t numParameters;
 
     int declLine;

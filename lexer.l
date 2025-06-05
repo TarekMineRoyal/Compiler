@@ -4,7 +4,7 @@
     #include <iostream>
     #include <string>
     #include <cstdlib>
-    #include <cstring>   // For strncpy
+    #include <cstring>
     #include <cstdio>
     #include <io.h>
 
@@ -55,7 +55,7 @@ ALPHA   [a-zA-Z]
     "<>"                { col += yyleng; return NEQ_OP; }
     "<="                { col += yyleng; return LTE_OP; }
     ">="                { col += yyleng; return GTE_OP; }
-    ".."                { col += yyleng; return DOTDOT; } // Placed BEFORE numbers and single dot
+    ".."                { col += yyleng; return DOTDOT; }
 
     /* Keywords */
     "program"           { col += yyleng; return PROGRAM; }
@@ -83,7 +83,7 @@ ALPHA   [a-zA-Z]
     "return"            { col += yyleng; return RETURN_KEYWORD; }
     
     /* --- Literals --- */
-    /* Real literals - Using the refined patterns with a single action block. */
+    /* Real literals */
     {DIGIT}+\.{DIGIT}+([eE][-+]?{DIGIT}+)? |
     {DIGIT}+\.([eE][-+]?{DIGIT}+)        |
     \.{DIGIT}+([eE][-+]?{DIGIT}+)?        |
@@ -95,7 +95,7 @@ ALPHA   [a-zA-Z]
     }
 
 
-    /* Integer Literal - This rule will now correctly grab "1" from "1.." */
+    /* Integer Literal */
     {DIGIT}+ { 
         int token_start_col = col; // Capture start column
         yylval.rawNum = new Num(atoi(yytext), lin, token_start_col);
@@ -111,7 +111,7 @@ ALPHA   [a-zA-Z]
         return IDENT;
     }
 
-    /* Single Character Operators & Punctuation - DOTDOT is already handled above */
+    /* Single Character Operators & Punctuation */
     "+"                 { col += yyleng; return '+'; }
     "-"                 { col += yyleng; return '-'; }
     "*"                 { col += yyleng; return '*'; }
@@ -152,4 +152,3 @@ ALPHA   [a-zA-Z]
 }
 
 %%
-/* C code section */

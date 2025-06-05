@@ -1,9 +1,9 @@
 // program.cpp
 #include "ast.h"
 #include "parser.h"
-#include "semantic_analyzer.h" // << ADD THIS
+#include "semantic_analyzer.h"
 #include <iostream>
-#include <fstream> // For file input
+#include <fstream>
 
 extern ProgramNode* root_ast_node;
 extern int yyparse();
@@ -18,12 +18,11 @@ int main(int argc, char* argv[]) {
         }
     }
     else {
-        // Optionally, allow stdin if no file is provided, or make file input mandatory
+        // Optionally, allow stdin if no file is provided
         std::cout << "No input file specified. Reading from stdin (Ctrl+D or Ctrl+Z to end)." << std::endl;
-        // yyin is stdin by default
     }
 
-    yydebug = 0; // Uncomment for Bison debug output
+    yydebug = 0; // Change it to ture for Bison debug output
 
     std::cout << "Starting parsing..." << std::endl;
     int parse_result = yyparse();
@@ -56,7 +55,7 @@ int main(int argc, char* argv[]) {
         // --- End Semantic Analysis ---
 
 
-        // Optional: Print AST only if no semantic errors or for debugging
+        // Print AST only if no semantic errors or for debugging
         // if (!semanticAnalyzer.hasErrors()) { // Or always print for debugging
         std::cout << "\n--- AST Dump ---" << std::endl;
         root_ast_node->print(std::cout, 0);

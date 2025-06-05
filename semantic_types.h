@@ -3,7 +3,7 @@
 
 #include <string>
 #include <vector>
-#include <memory> // For std::shared_ptr later if complex types are needed
+#include <memory>
 
 // Kind of symbol
 enum class SymbolKind {
@@ -54,7 +54,7 @@ inline std::string entryTypeToString(EntryTypeCategory type) {
     case EntryTypeCategory::PRIMITIVE_BOOLEAN: return "Boolean";
     case EntryTypeCategory::ARRAY: return "Array";
     case EntryTypeCategory::UNKNOWN_TYPE: return "UnknownType"; // Added for completeness
-    default: return "OtherType"; // Should ideally not happen with current enum
+    default: return "OtherType"; // Should ideally not happen with current enum but I think it is a best practice to add it anyway
     }
 }
 

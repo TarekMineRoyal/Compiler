@@ -581,7 +581,7 @@ char *yytext;
     #include <iostream>
     #include <string>
     #include <cstdlib>
-    #include <cstring>   // For strncpy
+    #include <cstring>
     #include <cstdio>
     #include <io.h>
 
@@ -946,7 +946,7 @@ YY_RULE_SETUP
 case 10:
 YY_RULE_SETUP
 #line 58 "./lexer.l"
-{ col += yyleng; return DOTDOT; } // Placed BEFORE numbers and single dot
+{ col += yyleng; return DOTDOT; }
 	YY_BREAK
 /* Keywords */
 case 11:
@@ -1065,7 +1065,7 @@ YY_RULE_SETUP
 { col += yyleng; return RETURN_KEYWORD; }
 	YY_BREAK
 /* --- Literals --- */
-/* Real literals - Using the refined patterns with a single action block. */
+/* Real literals */
 case 34:
 #line 88 "./lexer.l"
 case 35:
@@ -1082,7 +1082,7 @@ YY_RULE_SETUP
         return REAL_LITERAL;
     }
 	YY_BREAK
-/* Integer Literal - This rule will now correctly grab "1" from "1.." */
+/* Integer Literal */
 case 38:
 YY_RULE_SETUP
 #line 99 "./lexer.l"
@@ -1104,7 +1104,7 @@ YY_RULE_SETUP
         return IDENT;
     }
 	YY_BREAK
-/* Single Character Operators & Punctuation - DOTDOT is already handled above */
+/* Single Character Operators & Punctuation */
 case 40:
 YY_RULE_SETUP
 #line 115 "./lexer.l"
@@ -2283,4 +2283,3 @@ void yyfree (void * ptr )
 
 #line 154 "./lexer.l"
 
-/* C code section */

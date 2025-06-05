@@ -85,28 +85,16 @@ ProgramNode *root_ast_node;
 %type <pVariableNode> variable
 %type <pProcedureCallStatementNode> procedure_statement
 %type <pExpressionList> expression_list
-
-// NEW: %type declarations for the cascaded expression grammar non-terminals
-//      Your old 'expression', 'simple_expression', 'term', 'factor' %types are replaced by these
-//      for the purpose of building expression ASTs. 'primary' is still used.
 %type <pExprNode> expr logical_or_expr logical_and_expr not_expr relational_expr additive_expr multiplicative_expr unary_expr primary
 
-
-// Operator Precedence and Associativity - This order IS CRUCIAL
 // (Lowest precedence at the top, increasing downwards)
 %left OR_OP                                      // Level 1
 %left AND_OP                                     // Level 2
-// NOT_OP is trickier with a cascade. If NOT_OP rule is `NOT_OP higher_prec_expr`,
-// its precedence is defined by that structure.
-// If we want it ranked globally for S/R conflicts not handled by cascade:
-%left NOT_OP                                     // Level 3 (declared)
-%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP // Level 4 (Relational)
-%left '+' '-'                                    // Level 5 (Additive)
-%left '*' '/' DIV_OP                             // Level 6 (Multiplicative)
-%right UMINUS                                    // Level 7 (Highest unary - for the %prec directive)
-// Note: The cascade itself will primarily define precedence. These declarations
-//       will mostly handle associativity and resolve any remaining ambiguities
-//       if operators of the same effective precedence appear in the same rule.
+%left NOT_OP                                     // Level 3
+%nonassoc EQ_OP NEQ_OP GT_OP GTE_OP LT_OP LTE_OP // Level 4
+%left '+' '-'                                    // Level 5
+%left '*' '/' DIV_OP                             // Level 6
+%right UMINUS                                    // Level 7
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -262,9 +250,7 @@ expression_list: expr // Use new 'expr' non-terminal
     { $1->addExpression($3); $$ = $1; }
     ;
 
-// --- NEW CASCADED EXPRESSION GRAMMAR ---
-// This replaces your old 'expression', 'simple_expression', 'term', 'factor' rules
-// for defining operator precedence and structure.
+// --- CASCADED EXPRESSION GRAMMAR ---
 
 expr: logical_or_expr
     { $$ = $1; }
@@ -282,8 +268,6 @@ logical_and_expr: not_expr
                   { $$ = new BinaryOpNode($1, "AND_OP", $3, lin, col); }
                 ;
 
-// To achieve Relational > NOT, NOT must operate on something already stronger or equal to Relational.
-// Or, if NOT is weaker than Relational (as per L3 vs L4), NOT applies to the result of a Relational.
 not_expr: relational_expr
           { $$ = $1; }
         | NOT_OP not_expr // Apply NOT to an expression that has already handled relational.
@@ -333,15 +317,12 @@ unary_expr: primary
             { $$ = new UnaryOpNode("-", $2, lin, col); }
           ;
 
-// Primary expressions remain the same as your original 'primary' rule.
-// Note that '(' expression ')' now uses the new top-level 'expr'.
 primary: id_node '[' expr ']' // Added for array access in expressions
            { $$ = new VariableNode($1, $3, $1->line, $1->column); }
          | id_node '(' expression_list ')' // Function call with ()
            { $$ = new FunctionCallExprNode($1, $3, $1->line, $1->column); }
          | id_node // Simple identifier (variable or parameterless function)
-           { $$ = new VariableNode($1, nullptr, $1->line, $1->column); } // Changed to VariableNode
-                                                                         // for consistency
+           { $$ = new VariableNode($1, nullptr, $1->line, $1->column); }
          | int_num_node
            { $$ = $1; }
          | real_num_node
@@ -353,7 +334,7 @@ primary: id_node '[' expr ']' // Added for array access in expressions
          | '(' expr ')'
            { $$ = $2; }
          | STRING_LITERAL 
-         { $$ = new StringLiteralNode($1, lin, col); /* or appropriate line/col from token if available */ }
+         { $$ = new StringLiteralNode($1, lin, col); }
        ;
 
 %%

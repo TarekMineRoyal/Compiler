@@ -5,10 +5,10 @@
 #include <vector>
 #include <string>
 #include <list>
-#include <iosfwd> // For std::ostream forward declaration
+#include <iosfwd>
 
-#include "semantic_visitor.h" // For SemanticVisitor
-#include "semantic_types.h"   // For EntryTypeCategory, ArrayDetails
+#include "semantic_visitor.h"
+#include "semantic_types.h"
 
 // --- Base Node Class ---
 class Node {
@@ -23,7 +23,6 @@ public:
 };
 
 // --- Lexer Helper Original Classes ---
-// (No changes to these, they are not primary AST nodes for semantic visiting)
 class Expr : public Node {
 public:
     Expr(int l, int c);
@@ -80,7 +79,6 @@ public:
 };
 
 // --- SPECIFIC AST NODE DECLARATIONS ---
-
 class IdentNode : public ExprNode {
 public:
     std::string name;

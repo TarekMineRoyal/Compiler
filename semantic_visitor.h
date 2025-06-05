@@ -1,7 +1,7 @@
 #ifndef SEMANTIC_VISITOR_H
 #define SEMANTIC_VISITOR_H
 
-// Forward declarations of all your AST node classes
+// Forward declarations of all the AST node classes
 class ProgramNode;
 class IdentifierList;
 class IdentNode;
@@ -32,7 +32,7 @@ class BooleanLiteralNode;
 class StringLiteralNode;
 class BinaryOpNode;
 class UnaryOpNode;
-class IdExprNode; // << UNCOMMENTED
+class IdExprNode;
 class FunctionCallExprNode;
 class ReturnStatementNode;
 
@@ -45,14 +45,10 @@ public:
     virtual void visit(IdentNode& node) = 0;
     virtual void visit(Declarations& node) = 0;
     virtual void visit(VarDecl& node) = 0;
-    // TypeNode might not be visited directly if it's abstract in behavior
-    // virtual void visit(TypeNode& node) = 0; 
     virtual void visit(StandardTypeNode& node) = 0;
     virtual void visit(ArrayTypeNode& node) = 0;
     virtual void visit(SubprogramDeclarations& node) = 0;
     virtual void visit(SubprogramDeclaration& node) = 0;
-    // SubprogramHead might not be visited directly
-    // virtual void visit(SubprogramHead& node) = 0; 
     virtual void visit(FunctionHeadNode& node) = 0;
     virtual void visit(ProcedureHeadNode& node) = 0;
     virtual void visit(ArgumentsNode& node) = 0;
@@ -72,7 +68,7 @@ public:
     virtual void visit(StringLiteralNode& node) = 0;
     virtual void visit(BinaryOpNode& node) = 0;
     virtual void visit(UnaryOpNode& node) = 0;
-    virtual void visit(IdExprNode& node) = 0; // << UNCOMMENTED
+    virtual void visit(IdExprNode& node) = 0;
     virtual void visit(FunctionCallExprNode& node) = 0;
     virtual void visit(ReturnStatementNode& node) = 0;
 };

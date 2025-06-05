@@ -85,7 +85,7 @@ bool SemanticAnalyzer::isPrintableType(EntryTypeCategory type, ExprNode* argNode
         type == EntryTypeCategory::PRIMITIVE_BOOLEAN) {
         return true;
     }
-    // Check if it's a StringLiteralNode specifically, since MiniPascal doesn't have string variables
+    // Check if it's a StringLiteralNode specifically, since my MiniPascal doesn't have string variables
     if (dynamic_cast<StringLiteralNode*>(argNode)) {
         return true;
     }
@@ -496,7 +496,7 @@ void SemanticAnalyzer::visit(ProcedureCallStatementNode& node) {
                 if (expectedType == EntryTypeCategory::ARRAY) {
                     compatible = (actualArrayDetails.isInitialized && expectedArrayDetails.isInitialized &&
                         actualArrayDetails.elementType == expectedArrayDetails.elementType &&
-                        (actualArrayDetails.lowBound == expectedArrayDetails.lowBound && actualArrayDetails.highBound == expectedArrayDetails.highBound) // More strict for by-value
+                        (actualArrayDetails.lowBound == expectedArrayDetails.lowBound && actualArrayDetails.highBound == expectedArrayDetails.highBound)
                         );
                 }
                 else {

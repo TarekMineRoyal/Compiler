@@ -25,7 +25,7 @@ private:
 
 
 public:
-    SemanticAnalyzer(); // Constructor will add built-ins
+    SemanticAnalyzer();
 
     void visit(ProgramNode& node) override;
     void visit(IdentifierList& node) override;
