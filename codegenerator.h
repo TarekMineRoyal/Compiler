@@ -16,10 +16,6 @@ private:
     std::stringstream code;
     int labelCounter = 0;
     SymbolTable* symbolTable = nullptr;
-
-    // --- FIX ---
-    // Added this member to track the current function being compiled,
-    // which is needed for handling RETURN statements correctly.
     FunctionHeadNode* currentFunctionContext = nullptr;
 
     // Helper Methods
@@ -30,6 +26,11 @@ private:
 
     // Visitor Method Overrides
     void visit(ProgramNode& node) override;
+
+    // --- FIX: Removed the empty {} bodies from these two lines ---
+    void visit(Declarations& node) override;
+    void visit(VarDecl& node) override;
+
     void visit(SubprogramDeclarations& node) override;
     void visit(SubprogramDeclaration& node) override;
     void visit(CompoundStatementNode& node) override;
@@ -49,9 +50,7 @@ private:
     void visit(FunctionCallExprNode& node) override;
     void visit(IdExprNode& node) override;
 
-    // Unused or trivial visitor methods
-    void visit(Declarations& node) override {}
-    void visit(VarDecl& node) override {}
+    // Unused or trivial visitor methods (these are fine with empty bodies)
     void visit(IdentifierList& node) override {}
     void visit(IdentNode& node) override {}
     void visit(StandardTypeNode& node) override {}

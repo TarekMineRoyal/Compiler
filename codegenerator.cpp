@@ -39,20 +39,58 @@ void CodeGenerator::visit(ProgramNode& node) {
     if (node.subprogs) node.subprogs->accept(*this);
 
     emitLabel("main_entry");
-    // Allocate space for global variables
+
     if (node.decls) {
-        int globalVarCount = 0;
-        for (auto* decl : node.decls->var_decl_items) {
-            globalVarCount += decl->identifiers->identifiers.size();
-        }
-        if (globalVarCount > 0) {
-            emit("PUSHN", std::to_string(globalVarCount));
-        }
+        node.decls->accept(*this);
     }
 
     if (node.mainCompoundStmt) node.mainCompoundStmt->accept(*this);
 
     emit("STOP");
+}
+
+void CodeGenerator::visit(Declarations& node) {
+    int varCount = 0;
+    if (!node.var_decl_items.empty()) {
+        for (auto* decl : node.var_decl_items) {
+            varCount += decl->identifiers->identifiers.size();
+        }
+        if (varCount > 0) {
+            emit("PUSHN", std::to_string(varCount));
+        }
+    }
+
+    for (auto* varDecl : node.var_decl_items) {
+        varDecl->accept(*this);
+    }
+}
+
+void CodeGenerator::visit(VarDecl& node) {
+    if (auto* arrayType = dynamic_cast<ArrayTypeNode*>(node.type)) {
+        int low = arrayType->startIndex->value;
+        int high = arrayType->endIndex->value;
+        int size = high - low + 1;
+
+        if (size <= 0) {
+            throw std::runtime_error("Array size must be positive.");
+        }
+
+        for (auto* ident : node.identifiers->identifiers) {
+            SymbolEntry* entry = symbolTable->lookupSymbol(ident->name);
+            if (!entry) {
+                throw std::runtime_error("CodeGen: Symbol not found during array allocation: " + ident->name);
+            }
+
+            emit("ALLOC", std::to_string(size));
+
+            if (symbolTable->isGlobalScope()) { // This check might need refinement for local arrays
+                emit("STOREG", std::to_string(entry->offset));
+            }
+            else {
+                emit("STOREL", std::to_string(entry->offset));
+            }
+        }
+    }
 }
 
 void CodeGenerator::visit(SubprogramDeclarations& node) {
@@ -62,37 +100,25 @@ void CodeGenerator::visit(SubprogramDeclarations& node) {
 }
 
 void CodeGenerator::visit(SubprogramDeclaration& node) {
-    // --- FIX ---
-    // Set the current function context before compiling the body
     FunctionHeadNode* previousContext = currentFunctionContext;
     if (auto* funcHead = dynamic_cast<FunctionHeadNode*>(node.head)) {
         currentFunctionContext = funcHead;
     }
     else {
-        currentFunctionContext = nullptr; // It's a procedure
+        currentFunctionContext = nullptr;
     }
 
     std::string subprogramLabel = node.head->name->name;
     emitLabel(subprogramLabel);
 
-    // Prologue: allocate space for local variables
-    int localVarCount = 0;
     if (node.local_declarations) {
-        for (auto* decl : node.local_declarations->var_decl_items) {
-            localVarCount += decl->identifiers->identifiers.size();
-        }
-    }
-    if (localVarCount > 0) {
-        emit("PUSHN", std::to_string(localVarCount));
+        node.local_declarations->accept(*this);
     }
 
     if (node.body) node.body->accept(*this);
 
-    // Epilogue
     emit("RETURN");
 
-    // --- FIX ---
-    // Restore the previous function context
     currentFunctionContext = previousContext;
 }
 
@@ -107,28 +133,79 @@ void CodeGenerator::visit(StatementList& node) {
 }
 
 void CodeGenerator::visit(AssignStatementNode& node) {
-    if (node.variable->index) {
-        if (node.variable->scope == SymbolScope::LOCAL) {
-            emit("PUSHFP");
-            emit("PUSHI", std::to_string(node.variable->offset));
-            emit("ADD");
+    if (node.variable->index) { // Array assignment: a[i] := value
+        if (auto* index_lit = dynamic_cast<IntNumNode*>(node.variable->index)) {
+            // --- OPTIMIZED CASE: Index is a literal ---
+            // Push array address, then value, then use 'store <literal>'
+            if (node.variable->scope == SymbolScope::LOCAL) {
+                emit("PUSHL", std::to_string(node.variable->offset));
+            }
+            else {
+                emit("PUSHG", std::to_string(node.variable->offset));
+            }
+            node.expression->accept(*this);
+            emit("STORE", std::to_string(index_lit->value));
+
         }
         else {
-            emit("PUSHGP");
-            emit("PUSHI", std::to_string(node.variable->offset));
-            emit("ADD");
+            // --- GENERAL CASE: Index is an expression ---
+            // Push array address, then index value, then value, then use 'storen'
+            if (node.variable->scope == SymbolScope::LOCAL) {
+                emit("PUSHL", std::to_string(node.variable->offset));
+            }
+            else {
+                emit("PUSHG", std::to_string(node.variable->offset));
+            }
+            node.variable->index->accept(*this);
+            node.expression->accept(*this);
+            emit("STOREN");
         }
-        node.variable->index->accept(*this);
-        node.expression->accept(*this);
-        emit("STOREN");
     }
-    else {
+    else { // Simple variable assignment
         node.expression->accept(*this);
+        if (node.variable->determinedType == EntryTypeCategory::PRIMITIVE_REAL && node.expression->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+            emit("ITOF");
+        }
         if (node.variable->scope == SymbolScope::LOCAL) {
             emit("STOREL", std::to_string(node.variable->offset));
         }
         else {
             emit("STOREG", std::to_string(node.variable->offset));
+        }
+    }
+}
+
+
+void CodeGenerator::visit(VariableNode& node) {
+    if (node.index) { // Array access: e.g., in write(a[i])
+        if (auto* index_lit = dynamic_cast<IntNumNode*>(node.index)) {
+            // --- OPTIMIZED CASE: Index is a literal ---
+            if (node.scope == SymbolScope::LOCAL) {
+                emit("PUSHL", std::to_string(node.offset));
+            }
+            else {
+                emit("PUSHG", std::to_string(node.offset));
+            }
+            emit("LOAD", std::to_string(index_lit->value));
+        }
+        else {
+            // --- GENERAL CASE: Index is an expression ---
+            if (node.scope == SymbolScope::LOCAL) {
+                emit("PUSHL", std::to_string(node.offset));
+            }
+            else {
+                emit("PUSHG", std::to_string(node.offset));
+            }
+            node.index->accept(*this);
+            emit("LOADN");
+        }
+    }
+    else { // Simple variable access
+        if (node.scope == SymbolScope::LOCAL) {
+            emit("PUSHL", std::to_string(node.offset));
+        }
+        else {
+            emit("PUSHG", std::to_string(node.offset));
         }
     }
 }
@@ -172,23 +249,29 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
 
     if (procName == "write" || procName == "writeln") {
         if (node.arguments && !node.arguments->expressions.empty()) {
-            for (auto* arg : node.arguments->expressions) {
+            auto& expressions = node.arguments->expressions;
+            bool isFirst = true;
+
+            for (auto* arg : expressions) {
                 arg->accept(*this);
-                if (dynamic_cast<StringLiteralNode*>(arg) || arg->determinedType == EntryTypeCategory::ARRAY) { // Array of char not supported, assume string
-                    emit("WRITES");
-                }
-                else if (arg->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER || arg->determinedType == EntryTypeCategory::PRIMITIVE_BOOLEAN) {
-                    emit("WRITEI");
+
+                if (arg->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER || arg->determinedType == EntryTypeCategory::PRIMITIVE_BOOLEAN) {
+                    emit("STRI");
                 }
                 else if (arg->determinedType == EntryTypeCategory::PRIMITIVE_REAL) {
-                    emit("WRITEF");
+                    emit("STRF");
                 }
-                emit("PUSHS", "\" \""); // Separator for multiple args
-                emit("WRITES");
+
+                if (!isFirst) {
+                    emit("CONCAT");
+                }
+                isFirst = false;
             }
+            emit("WRITES");
         }
+
         if (procName == "writeln") {
-            emit("PUSHS", "\"\\n\"");
+            emit("PUSHS", "\"\n\"");
             emit("WRITES");
         }
         return;
@@ -234,8 +317,6 @@ void CodeGenerator::visit(FunctionCallExprNode& node) {
 
 void CodeGenerator::visit(ReturnStatementNode& node) {
     if (node.returnValue) {
-        // --- FIX ---
-        // This check now works because currentFunctionContext is a valid member
         if (!currentFunctionContext) {
             throw std::runtime_error("CodeGen: Return statement found outside of a function.");
         }
@@ -252,31 +333,6 @@ void CodeGenerator::visit(ReturnStatementNode& node) {
         node.returnValue->accept(*this);
 
         emit("STORE");
-    }
-}
-
-void CodeGenerator::visit(VariableNode& node) {
-    if (node.index) {
-        if (node.scope == SymbolScope::LOCAL) {
-            emit("PUSHFP");
-            emit("PUSHI", std::to_string(node.offset));
-            emit("ADD");
-        }
-        else {
-            emit("PUSHGP");
-            emit("PUSHI", std::to_string(node.offset));
-            emit("ADD");
-        }
-        node.index->accept(*this);
-        emit("LOADN");
-    }
-    else {
-        if (node.scope == SymbolScope::LOCAL) {
-            emit("PUSHL", std::to_string(node.offset));
-        }
-        else {
-            emit("PUSHG", std::to_string(node.offset));
-        }
     }
 }
 
@@ -314,45 +370,42 @@ void CodeGenerator::visit(UnaryOpNode& node) {
 }
 
 void CodeGenerator::visit(BinaryOpNode& node) {
+    bool is_real_op = (node.left->determinedType == EntryTypeCategory::PRIMITIVE_REAL ||
+        node.right->determinedType == EntryTypeCategory::PRIMITIVE_REAL ||
+        node.op == "/");
+
+    if (node.op == "AND_OP" || node.op == "OR_OP") {
+        is_real_op = false;
+    }
+
     node.left->accept(*this);
+    if (is_real_op && node.left->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+        emit("ITOF");
+    }
+
     node.right->accept(*this);
+    if (is_real_op && node.right->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+        emit("ITOF");
+    }
 
-    bool is_real = (node.determinedType == EntryTypeCategory::PRIMITIVE_REAL);
-
-    const std::map<std::string, std::pair<std::string, std::string>> op_map = {
-        {"+", {"ADD", "FADD"}},
-        {"-", {"SUB", "FSUB"}},
-        {"*", {"MUL", "FMUL"}},
-        {"/", {"FDIV", "FDIV"}},
-        {"DIV_OP", {"DIV", "DIV"}},
-        {"EQ_OP", {"EQUAL", "EQUAL"}},
-        {"NEQ_OP", {"EQUAL", "EQUAL"}},
-        {"LT_OP", {"INF", "FINF"}},
-        {"LTE_OP", {"INFEQ", "FINFEQ"}},
-        {"GT_OP", {"SUP", "FSUP"}},
-        {"GTE_OP", {"SUPEQ", "FSUPEQ"}},
-        {"AND_OP", {"ADD", "ADD"}},
-        {"OR_OP", {"ADD", "ADD"}}
-    };
-
-    auto it = op_map.find(node.op);
-    if (it != op_map.end()) {
-        emit(is_real ? it->second.second : it->second.first);
-        if (node.op == "NEQ_OP") {
-            emit("NOT");
-        }
-        if (node.op == "AND_OP") {
-            // A and B -> if A+B == 2 then 1 else 0
-            emit("PUSHI", "2");
-            emit("EQUAL");
-        }
-        if (node.op == "OR_OP") {
-            // A or B -> if A+B > 0 then 1 else 0
-            emit("PUSHI", "0");
-            emit("SUP");
-        }
+    if (node.op == "+") { emit(is_real_op ? "FADD" : "ADD"); }
+    else if (node.op == "-") { emit(is_real_op ? "FSUB" : "SUB"); }
+    else if (node.op == "*") { emit(is_real_op ? "FMUL" : "MUL"); }
+    else if (node.op == "/") { emit("FDIV"); }
+    else if (node.op == "DIV_OP") { emit("DIV"); }
+    else if (node.op == "EQ_OP") { emit("EQUAL"); }
+    else if (node.op == "NEQ_OP") { emit("EQUAL"); emit("NOT"); }
+    else if (node.op == "LT_OP") { emit(is_real_op ? "FINF" : "INF"); }
+    else if (node.op == "LTE_OP") { emit(is_real_op ? "FINFEQ" : "INFEQ"); }
+    else if (node.op == "GT_OP") { emit(is_real_op ? "FSUP" : "FSUP"); }
+    else if (node.op == "GTE_OP") { emit(is_real_op ? "FSUPEQ" : "SUPEQ"); }
+    else if (node.op == "AND_OP") { emit("MUL"); }
+    else if (node.op == "OR_OP") {
+        emit("ADD");
+        emit("PUSHI", "0");
+        emit("SUP");
     }
     else {
-        throw std::runtime_error("Unsupported binary operator in CodeGen: " + node.op);
+        throw std::runtime_error("CodeGen: Unsupported binary operator '" + node.op + "'");
     }
 }

@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ast.h" />
+    <ClInclude Include="codegenerator.h" />
     <ClInclude Include="parser.h" />
     <ClInclude Include="semantic_analyzer.h" />
     <ClInclude Include="semantic_types.h" />
@@ -140,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ast.cpp" />
+    <ClCompile Include="codegenerator.cpp" />
     <ClCompile Include="parser.cpp" />
     <ClCompile Include="program.cpp" />
     <ClCompile Include="scanner.cpp" />
