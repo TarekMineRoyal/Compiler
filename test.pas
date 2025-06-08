@@ -1,17 +1,15 @@
-PROGRAM ComplexArrayIndexTest;
+PROGRAM RealArrayTest;
 VAR
-  myArray: ARRAY [0..10] OF INTEGER;
-  i: INTEGER;
-  offset: INTEGER;
+  temps: ARRAY [1..3] OF REAL;
 BEGIN
-  i := 3;
-  offset := 2;
+  temps[1] := 98.6;
+  temps[2] := 32.5 + 5.5; // Test expression assignment
+  temps[3] := temps[1] - 10.0;
 
-  // Store the value 99 at index (3 * 2) + 1 = 7
-  myArray[i * offset + 1] := 99;
-
-  // Read back from the same calculated index and print it
-  write('Value at calculated index 7 should be 99: ');
-  write(myArray[i * offset + 1]);
+  write('Temp 1: ', temps[1]);
+  writeln;
+  write('Temp 2: ', temps[2]);
+  writeln;
+  write('Temp 3: ', temps[3]);
   writeln;
 END.

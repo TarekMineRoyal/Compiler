@@ -1,6 +1,7 @@
 #include "codegenerator.h"
 #include <stdexcept>
 #include <iostream>
+#include <list>
 
 // --- Entry Point ---
 
@@ -83,7 +84,7 @@ void CodeGenerator::visit(VarDecl& node) {
 
             emit("ALLOC", std::to_string(size));
 
-            if (symbolTable->isGlobalScope()) { // This check might need refinement for local arrays
+            if (symbolTable->isGlobalScope()) {
                 emit("STOREG", std::to_string(entry->offset));
             }
             else {
@@ -134,9 +135,13 @@ void CodeGenerator::visit(StatementList& node) {
 
 void CodeGenerator::visit(AssignStatementNode& node) {
     if (node.variable->index) { // Array assignment: a[i] := value
+        SymbolEntry* arrayEntry = symbolTable->lookupSymbol(node.variable->identifier->name);
+        if (!arrayEntry || !arrayEntry->arrayDetails.isInitialized) {
+            throw std::runtime_error("CodeGen: Array details not found for " + node.variable->identifier->name);
+        }
+        int lowerBound = arrayEntry->arrayDetails.lowBound;
+
         if (auto* index_lit = dynamic_cast<IntNumNode*>(node.variable->index)) {
-            // --- OPTIMIZED CASE: Index is a literal ---
-            // Push array address, then value, then use 'store <literal>'
             if (node.variable->scope == SymbolScope::LOCAL) {
                 emit("PUSHL", std::to_string(node.variable->offset));
             }
@@ -144,12 +149,10 @@ void CodeGenerator::visit(AssignStatementNode& node) {
                 emit("PUSHG", std::to_string(node.variable->offset));
             }
             node.expression->accept(*this);
-            emit("STORE", std::to_string(index_lit->value));
+            emit("STORE", std::to_string(index_lit->value - lowerBound));
 
         }
         else {
-            // --- GENERAL CASE: Index is an expression ---
-            // Push array address, then index value, then value, then use 'storen'
             if (node.variable->scope == SymbolScope::LOCAL) {
                 emit("PUSHL", std::to_string(node.variable->offset));
             }
@@ -157,6 +160,8 @@ void CodeGenerator::visit(AssignStatementNode& node) {
                 emit("PUSHG", std::to_string(node.variable->offset));
             }
             node.variable->index->accept(*this);
+            emit("PUSHI", std::to_string(lowerBound));
+            emit("SUB"); // Calculate zero-based index
             node.expression->accept(*this);
             emit("STOREN");
         }
@@ -177,19 +182,27 @@ void CodeGenerator::visit(AssignStatementNode& node) {
 
 
 void CodeGenerator::visit(VariableNode& node) {
-    if (node.index) { // Array access: e.g., in write(a[i])
+    SymbolEntry* entry = symbolTable->lookupSymbol(node.identifier->name);
+    if (!entry) {
+        throw std::runtime_error("CodeGen: Symbol not found for variable access: " + node.identifier->name);
+    }
+
+    if (node.index) {
+        if (!entry->arrayDetails.isInitialized) {
+            throw std::runtime_error("CodeGen: Array details not found for " + node.identifier->name);
+        }
+        int lowerBound = entry->arrayDetails.lowBound;
+
         if (auto* index_lit = dynamic_cast<IntNumNode*>(node.index)) {
-            // --- OPTIMIZED CASE: Index is a literal ---
             if (node.scope == SymbolScope::LOCAL) {
                 emit("PUSHL", std::to_string(node.offset));
             }
             else {
                 emit("PUSHG", std::to_string(node.offset));
             }
-            emit("LOAD", std::to_string(index_lit->value));
+            emit("LOAD", std::to_string(index_lit->value - lowerBound));
         }
         else {
-            // --- GENERAL CASE: Index is an expression ---
             if (node.scope == SymbolScope::LOCAL) {
                 emit("PUSHL", std::to_string(node.offset));
             }
@@ -197,6 +210,8 @@ void CodeGenerator::visit(VariableNode& node) {
                 emit("PUSHG", std::to_string(node.offset));
             }
             node.index->accept(*this);
+            emit("PUSHI", std::to_string(lowerBound));
+            emit("SUB"); // Calculate zero-based index
             emit("LOADN");
         }
     }
@@ -249,10 +264,11 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
 
     if (procName == "write" || procName == "writeln") {
         if (node.arguments && !node.arguments->expressions.empty()) {
-            auto& expressions = node.arguments->expressions;
-            bool isFirst = true;
+            std::list<ExprNode*> reversed_args = node.arguments->expressions;
+            reversed_args.reverse(); // Reverse the list of arguments
 
-            for (auto* arg : expressions) {
+            bool isFirst = true;
+            for (auto* arg : reversed_args) {
                 arg->accept(*this);
 
                 if (arg->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER || arg->determinedType == EntryTypeCategory::PRIMITIVE_BOOLEAN) {
@@ -397,7 +413,7 @@ void CodeGenerator::visit(BinaryOpNode& node) {
     else if (node.op == "NEQ_OP") { emit("EQUAL"); emit("NOT"); }
     else if (node.op == "LT_OP") { emit(is_real_op ? "FINF" : "INF"); }
     else if (node.op == "LTE_OP") { emit(is_real_op ? "FINFEQ" : "INFEQ"); }
-    else if (node.op == "GT_OP") { emit(is_real_op ? "FSUP" : "FSUP"); }
+    else if (node.op == "GT_OP") { emit(is_real_op ? "FSUP" : "SUP"); }
     else if (node.op == "GTE_OP") { emit(is_real_op ? "FSUPEQ" : "SUPEQ"); }
     else if (node.op == "AND_OP") { emit("MUL"); }
     else if (node.op == "OR_OP") {

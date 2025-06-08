@@ -1,30 +1,45 @@
     START
 main_entry:
-    PUSHN 3
-    ALLOC 11
+    PUSHN 1
+    ALLOC 3
     STOREG 0
-    PUSHI 3
-    STOREG 1
-    PUSHI 2
-    STOREG 2
     PUSHG 0
-    PUSHG 1
-    PUSHG 2
-    MUL
-    PUSHI 1
-    ADD
-    PUSHI 99
-    STOREN
-    PUSHS "Value at calculated index 7 should be 99: "
+    PUSHF 98.600000
+    STORE 0
+    PUSHG 0
+    PUSHF 32.500000
+    PUSHF 5.500000
+    FADD
+    STORE 1
+    PUSHG 0
+    PUSHG 0
+    LOAD 0
+    PUSHF 10.000000
+    FSUB
+    STORE 2
+    PUSHG 0
+    LOAD 0
+    STRF
+    PUSHS "Temp 1: "
+    CONCAT
+    WRITES
+    PUSHS "
+"
     WRITES
     PUSHG 0
-    PUSHG 1
-    PUSHG 2
-    MUL
-    PUSHI 1
-    ADD
-    LOADN
-    STRI
+    LOAD 1
+    STRF
+    PUSHS "Temp 2: "
+    CONCAT
+    WRITES
+    PUSHS "
+"
+    WRITES
+    PUSHG 0
+    LOAD 2
+    STRF
+    PUSHS "Temp 3: "
+    CONCAT
     WRITES
     PUSHS "
 "
