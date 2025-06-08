@@ -27,10 +27,10 @@ bin/
 *.obj
 
 # Generated files from your project
-my_compiler.exe
-parser.output
-test.pas
-output.vm
+./my_compiler.exe
+./parser.output
+./test.pas
+./output.vm
 
 # Other common ignores
 *.log

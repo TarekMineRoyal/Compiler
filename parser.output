@@ -1,0 +1,2024 @@
+Grammar
+
+    0 $accept: program_rule $end
+
+    1 program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement '.'
+
+    2 id_node: IDENT
+
+    3 identifier_list: id_node
+    4                | identifier_list ',' id_node
+
+    5 declarations: ε
+    6             | VAR var_declaration_list_non_empty
+
+    7 var_declaration_list_non_empty: var_declaration_item
+    8                               | var_declaration_list_non_empty var_declaration_item
+
+    9 var_declaration_item: identifier_list ':' type ';'
+
+   10 type: standard_type
+   11     | ARRAY '[' int_num_node DOTDOT int_num_node ']' OF standard_type
+
+   12 int_num_node: NUM
+
+   13 real_num_node: REAL_LITERAL
+
+   14 standard_type: INTEGER_TYPE
+   15              | REAL_TYPE
+   16              | BOOLEAN_TYPE
+
+   17 subprogram_declarations: ε
+   18                        | subprogram_declarations subprogram_declaration_block
+
+   19 subprogram_declaration_block: subprogram_declaration ';'
+
+   20 subprogram_declaration: subprogram_head declarations compound_statement
+
+   21 subprogram_head: FUNCTION id_node arguments ':' standard_type ';'
+   22                | PROCEDURE id_node arguments ';'
+
+   23 arguments: ε
+   24          | '(' parameter_list ')'
+
+   25 parameter_list: parameter_declaration_group
+   26               | parameter_list ';' parameter_declaration_group
+
+   27 parameter_declaration_group: identifier_list ':' type
+
+   28 compound_statement: BEGIN_TOKEN optional_statements END_TOKEN
+
+   29 optional_statements: ε
+   30                    | statement_list_terminated
+
+   31 statement_list_terminated: statement_list
+   32                          | statement_list ';'
+
+   33 statement_list: statement
+   34               | statement_list ';' statement
+
+   35 statement: variable ASSIGN_OP expr
+   36          | procedure_statement
+   37          | compound_statement
+   38          | IF expr THEN statement
+   39          | IF expr THEN statement ELSE statement
+   40          | WHILE expr DO statement
+   41          | return_statement
+
+   42 return_statement: RETURN_KEYWORD expr
+
+   43 variable: id_node
+   44         | id_node '[' expr ']'
+
+   45 procedure_statement: id_node
+   46                    | id_node '(' expression_list ')'
+
+   47 expression_list: expr
+   48                | expression_list ',' expr
+
+   49 expr: logical_or_expr
+
+   50 logical_or_expr: logical_and_expr
+   51                | logical_or_expr OR_OP logical_and_expr
+
+   52 logical_and_expr: not_expr
+   53                 | logical_and_expr AND_OP not_expr
+
+   54 not_expr: relational_expr
+   55         | NOT_OP not_expr
+
+   56 relational_expr: additive_expr
+   57                | relational_expr EQ_OP additive_expr
+   58                | relational_expr NEQ_OP additive_expr
+   59                | relational_expr LT_OP additive_expr
+   60                | relational_expr LTE_OP additive_expr
+   61                | relational_expr GT_OP additive_expr
+   62                | relational_expr GTE_OP additive_expr
+
+   63 additive_expr: multiplicative_expr
+   64              | additive_expr '+' multiplicative_expr
+   65              | additive_expr '-' multiplicative_expr
+
+   66 multiplicative_expr: unary_expr
+   67                    | multiplicative_expr '*' unary_expr
+   68                    | multiplicative_expr '/' unary_expr
+   69                    | multiplicative_expr DIV_OP unary_expr
+
+   70 unary_expr: primary
+   71           | '-' primary
+
+   72 primary: id_node '[' expr ']'
+   73        | id_node '(' expression_list ')'
+   74        | id_node
+   75        | int_num_node
+   76        | real_num_node
+   77        | TRUE_KEYWORD
+   78        | FALSE_KEYWORD
+   79        | '(' expr ')'
+   80        | STRING_LITERAL
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '(' (40) 24 46 73 79
+    ')' (41) 24 46 73 79
+    '*' (42) 67
+    '+' (43) 64
+    ',' (44) 4 48
+    '-' (45) 65 71
+    '.' (46) 1
+    '/' (47) 68
+    ':' (58) 9 21 27
+    ';' (59) 1 9 19 21 22 26 32 34
+    '[' (91) 11 44 72
+    ']' (93) 11 44 72
+    error (256)
+    NUM <rawNum> (258) 12
+    REAL_LITERAL <rawRealLit> (259) 13
+    IDENT <rawIdent> (260) 2
+    TRUE_KEYWORD (261) 77
+    FALSE_KEYWORD (262) 78
+    PROGRAM (263) 1
+    VAR (264) 6
+    ARRAY (265) 11
+    OF (266) 11
+    INTEGER_TYPE (267) 14
+    REAL_TYPE (268) 15
+    BOOLEAN_TYPE (269) 16
+    FUNCTION (270) 21
+    PROCEDURE (271) 22
+    BEGIN_TOKEN (272) 28
+    END_TOKEN (273) 28
+    IF (274) 38 39
+    THEN (275) 38 39
+    ELSE (276) 39
+    WHILE (277) 40
+    DO (278) 40
+    NOT_OP (279) 55
+    AND_OP (280) 53
+    OR_OP (281) 51
+    DIV_OP (282) 69
+    ASSIGN_OP (283) 35
+    EQ_OP (284) 57
+    NEQ_OP (285) 58
+    LT_OP (286) 59
+    LTE_OP (287) 60
+    GT_OP (288) 61
+    GTE_OP (289) 62
+    DOTDOT (290) 11
+    STRING_LITERAL <str_val> (291) 80
+    RETURN_KEYWORD (292) 42
+    UMINUS (293)
+
+
+Nonterminals, with rules where they appear
+
+    $accept (51)
+        on left: 0
+    program_rule <pProgramNode> (52)
+        on left: 1
+        on right: 0
+    id_node <pIdentNode> (53)
+        on left: 2
+        on right: 1 3 4 21 22 43 44 45 46 72 73 74
+    identifier_list <pIdentifierList> (54)
+        on left: 3 4
+        on right: 4 9 27
+    declarations <pDeclarations> (55)
+        on left: 5 6
+        on right: 1 20
+    var_declaration_list_non_empty <pDeclarations> (56)
+        on left: 7 8
+        on right: 6 8
+    var_declaration_item <pVarDecl> (57)
+        on left: 9
+        on right: 7 8
+    type <pTypeNode> (58)
+        on left: 10 11
+        on right: 9 27
+    int_num_node <pIntNumNode> (59)
+        on left: 12
+        on right: 11 75
+    real_num_node <pRealNumNode> (60)
+        on left: 13
+        on right: 76
+    standard_type <pStandardTypeNode> (61)
+        on left: 14 15 16
+        on right: 10 11 21
+    subprogram_declarations <pSubprogramDeclarations> (62)
+        on left: 17 18
+        on right: 1 18
+    subprogram_declaration_block <pSubprogramDeclaration> (63)
+        on left: 19
+        on right: 18
+    subprogram_declaration <pSubprogramDeclaration> (64)
+        on left: 20
+        on right: 19
+    subprogram_head <pSubprogramHead> (65)
+        on left: 21 22
+        on right: 20
+    arguments <pArgumentsNode> (66)
+        on left: 23 24
+        on right: 21 22
+    parameter_list <pParameterList> (67)
+        on left: 25 26
+        on right: 24 26
+    parameter_declaration_group <pParameterDeclaration> (68)
+        on left: 27
+        on right: 25 26
+    compound_statement <pCompoundStatementNode> (69)
+        on left: 28
+        on right: 1 20 37
+    optional_statements <pStatementList> (70)
+        on left: 29 30
+        on right: 28
+    statement_list_terminated <pStatementList> (71)
+        on left: 31 32
+        on right: 30
+    statement_list <pStatementList> (72)
+        on left: 33 34
+        on right: 31 32 34
+    statement <pStatementNode> (73)
+        on left: 35 36 37 38 39 40 41
+        on right: 33 34 38 39 40
+    return_statement <pStatementNode> (74)
+        on left: 42
+        on right: 41
+    variable <pVariableNode> (75)
+        on left: 43 44
+        on right: 35
+    procedure_statement <pProcedureCallStatementNode> (76)
+        on left: 45 46
+        on right: 36
+    expression_list <pExpressionList> (77)
+        on left: 47 48
+        on right: 46 48 73
+    expr <pExprNode> (78)
+        on left: 49
+        on right: 35 38 39 40 42 44 47 48 72 79
+    logical_or_expr <pExprNode> (79)
+        on left: 50 51
+        on right: 49 51
+    logical_and_expr <pExprNode> (80)
+        on left: 52 53
+        on right: 50 51 53
+    not_expr <pExprNode> (81)
+        on left: 54 55
+        on right: 52 53 55
+    relational_expr <pExprNode> (82)
+        on left: 56 57 58 59 60 61 62
+        on right: 54 57 58 59 60 61 62
+    additive_expr <pExprNode> (83)
+        on left: 63 64 65
+        on right: 56 57 58 59 60 61 62 64 65
+    multiplicative_expr <pExprNode> (84)
+        on left: 66 67 68 69
+        on right: 63 64 65 67 68 69
+    unary_expr <pExprNode> (85)
+        on left: 70 71
+        on right: 66 67 68 69
+    primary <pExprNode> (86)
+        on left: 72 73 74 75 76 77 78 79 80
+        on right: 70 71
+
+
+State 0
+
+    0 $accept: • program_rule $end
+
+    PROGRAM  shift, and go to state 1
+
+    program_rule  go to state 2
+
+
+State 1
+
+    1 program_rule: PROGRAM • id_node ';' declarations subprogram_declarations compound_statement '.'
+
+    IDENT  shift, and go to state 3
+
+    id_node  go to state 4
+
+
+State 2
+
+    0 $accept: program_rule • $end
+
+    $end  shift, and go to state 5
+
+
+State 3
+
+    2 id_node: IDENT •
+
+    $default  reduce using rule 2 (id_node)
+
+
+State 4
+
+    1 program_rule: PROGRAM id_node • ';' declarations subprogram_declarations compound_statement '.'
+
+    ';'  shift, and go to state 6
+
+
+State 5
+
+    0 $accept: program_rule $end •
+
+    $default  accept
+
+
+State 6
+
+    1 program_rule: PROGRAM id_node ';' • declarations subprogram_declarations compound_statement '.'
+
+    VAR  shift, and go to state 7
+
+    $default  reduce using rule 5 (declarations)
+
+    declarations  go to state 8
+
+
+State 7
+
+    6 declarations: VAR • var_declaration_list_non_empty
+
+    IDENT  shift, and go to state 3
+
+    id_node                         go to state 9
+    identifier_list                 go to state 10
+    var_declaration_list_non_empty  go to state 11
+    var_declaration_item            go to state 12
+
+
+State 8
+
+    1 program_rule: PROGRAM id_node ';' declarations • subprogram_declarations compound_statement '.'
+
+    $default  reduce using rule 17 (subprogram_declarations)
+
+    subprogram_declarations  go to state 13
+
+
+State 9
+
+    3 identifier_list: id_node •
+
+    $default  reduce using rule 3 (identifier_list)
+
+
+State 10
+
+    4 identifier_list: identifier_list • ',' id_node
+    9 var_declaration_item: identifier_list • ':' type ';'
+
+    ','  shift, and go to state 14
+    ':'  shift, and go to state 15
+
+
+State 11
+
+    6 declarations: VAR var_declaration_list_non_empty •
+    8 var_declaration_list_non_empty: var_declaration_list_non_empty • var_declaration_item
+
+    IDENT  shift, and go to state 3
+
+    $default  reduce using rule 6 (declarations)
+
+    id_node               go to state 9
+    identifier_list       go to state 10
+    var_declaration_item  go to state 16
+
+
+State 12
+
+    7 var_declaration_list_non_empty: var_declaration_item •
+
+    $default  reduce using rule 7 (var_declaration_list_non_empty)
+
+
+State 13
+
+    1 program_rule: PROGRAM id_node ';' declarations subprogram_declarations • compound_statement '.'
+   18 subprogram_declarations: subprogram_declarations • subprogram_declaration_block
+
+    FUNCTION     shift, and go to state 17
+    PROCEDURE    shift, and go to state 18
+    BEGIN_TOKEN  shift, and go to state 19
+
+    subprogram_declaration_block  go to state 20
+    subprogram_declaration        go to state 21
+    subprogram_head               go to state 22
+    compound_statement            go to state 23
+
+
+State 14
+
+    4 identifier_list: identifier_list ',' • id_node
+
+    IDENT  shift, and go to state 3
+
+    id_node  go to state 24
+
+
+State 15
+
+    9 var_declaration_item: identifier_list ':' • type ';'
+
+    ARRAY         shift, and go to state 25
+    INTEGER_TYPE  shift, and go to state 26
+    REAL_TYPE     shift, and go to state 27
+    BOOLEAN_TYPE  shift, and go to state 28
+
+    type           go to state 29
+    standard_type  go to state 30
+
+
+State 16
+
+    8 var_declaration_list_non_empty: var_declaration_list_non_empty var_declaration_item •
+
+    $default  reduce using rule 8 (var_declaration_list_non_empty)
+
+
+State 17
+
+   21 subprogram_head: FUNCTION • id_node arguments ':' standard_type ';'
+
+    IDENT  shift, and go to state 3
+
+    id_node  go to state 31
+
+
+State 18
+
+   22 subprogram_head: PROCEDURE • id_node arguments ';'
+
+    IDENT  shift, and go to state 3
+
+    id_node  go to state 32
+
+
+State 19
+
+   28 compound_statement: BEGIN_TOKEN • optional_statements END_TOKEN
+
+    IDENT           shift, and go to state 3
+    BEGIN_TOKEN     shift, and go to state 19
+    IF              shift, and go to state 33
+    WHILE           shift, and go to state 34
+    RETURN_KEYWORD  shift, and go to state 35
+
+    $default  reduce using rule 29 (optional_statements)
+
+    id_node                    go to state 36
+    compound_statement         go to state 37
+    optional_statements        go to state 38
+    statement_list_terminated  go to state 39
+    statement_list             go to state 40
+    statement                  go to state 41
+    return_statement           go to state 42
+    variable                   go to state 43
+    procedure_statement        go to state 44
+
+
+State 20
+
+   18 subprogram_declarations: subprogram_declarations subprogram_declaration_block •
+
+    $default  reduce using rule 18 (subprogram_declarations)
+
+
+State 21
+
+   19 subprogram_declaration_block: subprogram_declaration • ';'
+
+    ';'  shift, and go to state 45
+
+
+State 22
+
+   20 subprogram_declaration: subprogram_head • declarations compound_statement
+
+    VAR  shift, and go to state 7
+
+    $default  reduce using rule 5 (declarations)
+
+    declarations  go to state 46
+
+
+State 23
+
+    1 program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement • '.'
+
+    '.'  shift, and go to state 47
+
+
+State 24
+
+    4 identifier_list: identifier_list ',' id_node •
+
+    $default  reduce using rule 4 (identifier_list)
+
+
+State 25
+
+   11 type: ARRAY • '[' int_num_node DOTDOT int_num_node ']' OF standard_type
+
+    '['  shift, and go to state 48
+
+
+State 26
+
+   14 standard_type: INTEGER_TYPE •
+
+    $default  reduce using rule 14 (standard_type)
+
+
+State 27
+
+   15 standard_type: REAL_TYPE •
+
+    $default  reduce using rule 15 (standard_type)
+
+
+State 28
+
+   16 standard_type: BOOLEAN_TYPE •
+
+    $default  reduce using rule 16 (standard_type)
+
+
+State 29
+
+    9 var_declaration_item: identifier_list ':' type • ';'
+
+    ';'  shift, and go to state 49
+
+
+State 30
+
+   10 type: standard_type •
+
+    $default  reduce using rule 10 (type)
+
+
+State 31
+
+   21 subprogram_head: FUNCTION id_node • arguments ':' standard_type ';'
+
+    '('  shift, and go to state 50
+
+    $default  reduce using rule 23 (arguments)
+
+    arguments  go to state 51
+
+
+State 32
+
+   22 subprogram_head: PROCEDURE id_node • arguments ';'
+
+    '('  shift, and go to state 50
+
+    $default  reduce using rule 23 (arguments)
+
+    arguments  go to state 52
+
+
+State 33
+
+   38 statement: IF • expr THEN statement
+   39          | IF • expr THEN statement ELSE statement
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 64
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 34
+
+   40 statement: WHILE • expr DO statement
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 73
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 35
+
+   42 return_statement: RETURN_KEYWORD • expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 74
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 36
+
+   43 variable: id_node •
+   44         | id_node • '[' expr ']'
+   45 procedure_statement: id_node •
+   46                    | id_node • '(' expression_list ')'
+
+    '['  shift, and go to state 75
+    '('  shift, and go to state 76
+
+    ASSIGN_OP  reduce using rule 43 (variable)
+    $default   reduce using rule 45 (procedure_statement)
+
+
+State 37
+
+   37 statement: compound_statement •
+
+    $default  reduce using rule 37 (statement)
+
+
+State 38
+
+   28 compound_statement: BEGIN_TOKEN optional_statements • END_TOKEN
+
+    END_TOKEN  shift, and go to state 77
+
+
+State 39
+
+   30 optional_statements: statement_list_terminated •
+
+    $default  reduce using rule 30 (optional_statements)
+
+
+State 40
+
+   31 statement_list_terminated: statement_list •
+   32                          | statement_list • ';'
+   34 statement_list: statement_list • ';' statement
+
+    ';'  shift, and go to state 78
+
+    $default  reduce using rule 31 (statement_list_terminated)
+
+
+State 41
+
+   33 statement_list: statement •
+
+    $default  reduce using rule 33 (statement_list)
+
+
+State 42
+
+   41 statement: return_statement •
+
+    $default  reduce using rule 41 (statement)
+
+
+State 43
+
+   35 statement: variable • ASSIGN_OP expr
+
+    ASSIGN_OP  shift, and go to state 79
+
+
+State 44
+
+   36 statement: procedure_statement •
+
+    $default  reduce using rule 36 (statement)
+
+
+State 45
+
+   19 subprogram_declaration_block: subprogram_declaration ';' •
+
+    $default  reduce using rule 19 (subprogram_declaration_block)
+
+
+State 46
+
+   20 subprogram_declaration: subprogram_head declarations • compound_statement
+
+    BEGIN_TOKEN  shift, and go to state 19
+
+    compound_statement  go to state 80
+
+
+State 47
+
+    1 program_rule: PROGRAM id_node ';' declarations subprogram_declarations compound_statement '.' •
+
+    $default  reduce using rule 1 (program_rule)
+
+
+State 48
+
+   11 type: ARRAY '[' • int_num_node DOTDOT int_num_node ']' OF standard_type
+
+    NUM  shift, and go to state 53
+
+    int_num_node  go to state 81
+
+
+State 49
+
+    9 var_declaration_item: identifier_list ':' type ';' •
+
+    $default  reduce using rule 9 (var_declaration_item)
+
+
+State 50
+
+   24 arguments: '(' • parameter_list ')'
+
+    IDENT  shift, and go to state 3
+
+    id_node                      go to state 9
+    identifier_list              go to state 82
+    parameter_list               go to state 83
+    parameter_declaration_group  go to state 84
+
+
+State 51
+
+   21 subprogram_head: FUNCTION id_node arguments • ':' standard_type ';'
+
+    ':'  shift, and go to state 85
+
+
+State 52
+
+   22 subprogram_head: PROCEDURE id_node arguments • ';'
+
+    ';'  shift, and go to state 86
+
+
+State 53
+
+   12 int_num_node: NUM •
+
+    $default  reduce using rule 12 (int_num_node)
+
+
+State 54
+
+   13 real_num_node: REAL_LITERAL •
+
+    $default  reduce using rule 13 (real_num_node)
+
+
+State 55
+
+   77 primary: TRUE_KEYWORD •
+
+    $default  reduce using rule 77 (primary)
+
+
+State 56
+
+   78 primary: FALSE_KEYWORD •
+
+    $default  reduce using rule 78 (primary)
+
+
+State 57
+
+   55 not_expr: NOT_OP • not_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    not_expr             go to state 87
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 58
+
+   80 primary: STRING_LITERAL •
+
+    $default  reduce using rule 80 (primary)
+
+
+State 59
+
+   71 unary_expr: '-' • primary
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '('             shift, and go to state 60
+
+    id_node        go to state 61
+    int_num_node   go to state 62
+    real_num_node  go to state 63
+    primary        go to state 88
+
+
+State 60
+
+   79 primary: '(' • expr ')'
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 89
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 61
+
+   72 primary: id_node • '[' expr ']'
+   73        | id_node • '(' expression_list ')'
+   74        | id_node •
+
+    '['  shift, and go to state 90
+    '('  shift, and go to state 91
+
+    $default  reduce using rule 74 (primary)
+
+
+State 62
+
+   75 primary: int_num_node •
+
+    $default  reduce using rule 75 (primary)
+
+
+State 63
+
+   76 primary: real_num_node •
+
+    $default  reduce using rule 76 (primary)
+
+
+State 64
+
+   38 statement: IF expr • THEN statement
+   39          | IF expr • THEN statement ELSE statement
+
+    THEN  shift, and go to state 92
+
+
+State 65
+
+   49 expr: logical_or_expr •
+   51 logical_or_expr: logical_or_expr • OR_OP logical_and_expr
+
+    OR_OP  shift, and go to state 93
+
+    $default  reduce using rule 49 (expr)
+
+
+State 66
+
+   50 logical_or_expr: logical_and_expr •
+   53 logical_and_expr: logical_and_expr • AND_OP not_expr
+
+    AND_OP  shift, and go to state 94
+
+    $default  reduce using rule 50 (logical_or_expr)
+
+
+State 67
+
+   52 logical_and_expr: not_expr •
+
+    $default  reduce using rule 52 (logical_and_expr)
+
+
+State 68
+
+   54 not_expr: relational_expr •
+   57 relational_expr: relational_expr • EQ_OP additive_expr
+   58                | relational_expr • NEQ_OP additive_expr
+   59                | relational_expr • LT_OP additive_expr
+   60                | relational_expr • LTE_OP additive_expr
+   61                | relational_expr • GT_OP additive_expr
+   62                | relational_expr • GTE_OP additive_expr
+
+    EQ_OP   shift, and go to state 95
+    NEQ_OP  shift, and go to state 96
+    LT_OP   shift, and go to state 97
+    LTE_OP  shift, and go to state 98
+    GT_OP   shift, and go to state 99
+    GTE_OP  shift, and go to state 100
+
+    $default  reduce using rule 54 (not_expr)
+
+
+State 69
+
+   56 relational_expr: additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 56 (relational_expr)
+
+
+State 70
+
+   63 additive_expr: multiplicative_expr •
+   67 multiplicative_expr: multiplicative_expr • '*' unary_expr
+   68                    | multiplicative_expr • '/' unary_expr
+   69                    | multiplicative_expr • DIV_OP unary_expr
+
+    DIV_OP  shift, and go to state 103
+    '*'     shift, and go to state 104
+    '/'     shift, and go to state 105
+
+    $default  reduce using rule 63 (additive_expr)
+
+
+State 71
+
+   66 multiplicative_expr: unary_expr •
+
+    $default  reduce using rule 66 (multiplicative_expr)
+
+
+State 72
+
+   70 unary_expr: primary •
+
+    $default  reduce using rule 70 (unary_expr)
+
+
+State 73
+
+   40 statement: WHILE expr • DO statement
+
+    DO  shift, and go to state 106
+
+
+State 74
+
+   42 return_statement: RETURN_KEYWORD expr •
+
+    $default  reduce using rule 42 (return_statement)
+
+
+State 75
+
+   44 variable: id_node '[' • expr ']'
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 107
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 76
+
+   46 procedure_statement: id_node '(' • expression_list ')'
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expression_list      go to state 108
+    expr                 go to state 109
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 77
+
+   28 compound_statement: BEGIN_TOKEN optional_statements END_TOKEN •
+
+    $default  reduce using rule 28 (compound_statement)
+
+
+State 78
+
+   32 statement_list_terminated: statement_list ';' •
+   34 statement_list: statement_list ';' • statement
+
+    IDENT           shift, and go to state 3
+    BEGIN_TOKEN     shift, and go to state 19
+    IF              shift, and go to state 33
+    WHILE           shift, and go to state 34
+    RETURN_KEYWORD  shift, and go to state 35
+
+    $default  reduce using rule 32 (statement_list_terminated)
+
+    id_node              go to state 36
+    compound_statement   go to state 37
+    statement            go to state 110
+    return_statement     go to state 42
+    variable             go to state 43
+    procedure_statement  go to state 44
+
+
+State 79
+
+   35 statement: variable ASSIGN_OP • expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 111
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 80
+
+   20 subprogram_declaration: subprogram_head declarations compound_statement •
+
+    $default  reduce using rule 20 (subprogram_declaration)
+
+
+State 81
+
+   11 type: ARRAY '[' int_num_node • DOTDOT int_num_node ']' OF standard_type
+
+    DOTDOT  shift, and go to state 112
+
+
+State 82
+
+    4 identifier_list: identifier_list • ',' id_node
+   27 parameter_declaration_group: identifier_list • ':' type
+
+    ','  shift, and go to state 14
+    ':'  shift, and go to state 113
+
+
+State 83
+
+   24 arguments: '(' parameter_list • ')'
+   26 parameter_list: parameter_list • ';' parameter_declaration_group
+
+    ';'  shift, and go to state 114
+    ')'  shift, and go to state 115
+
+
+State 84
+
+   25 parameter_list: parameter_declaration_group •
+
+    $default  reduce using rule 25 (parameter_list)
+
+
+State 85
+
+   21 subprogram_head: FUNCTION id_node arguments ':' • standard_type ';'
+
+    INTEGER_TYPE  shift, and go to state 26
+    REAL_TYPE     shift, and go to state 27
+    BOOLEAN_TYPE  shift, and go to state 28
+
+    standard_type  go to state 116
+
+
+State 86
+
+   22 subprogram_head: PROCEDURE id_node arguments ';' •
+
+    $default  reduce using rule 22 (subprogram_head)
+
+
+State 87
+
+   55 not_expr: NOT_OP not_expr •
+
+    $default  reduce using rule 55 (not_expr)
+
+
+State 88
+
+   71 unary_expr: '-' primary •
+
+    $default  reduce using rule 71 (unary_expr)
+
+
+State 89
+
+   79 primary: '(' expr • ')'
+
+    ')'  shift, and go to state 117
+
+
+State 90
+
+   72 primary: id_node '[' • expr ']'
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 118
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 91
+
+   73 primary: id_node '(' • expression_list ')'
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expression_list      go to state 119
+    expr                 go to state 109
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 92
+
+   38 statement: IF expr THEN • statement
+   39          | IF expr THEN • statement ELSE statement
+
+    IDENT           shift, and go to state 3
+    BEGIN_TOKEN     shift, and go to state 19
+    IF              shift, and go to state 33
+    WHILE           shift, and go to state 34
+    RETURN_KEYWORD  shift, and go to state 35
+
+    id_node              go to state 36
+    compound_statement   go to state 37
+    statement            go to state 120
+    return_statement     go to state 42
+    variable             go to state 43
+    procedure_statement  go to state 44
+
+
+State 93
+
+   51 logical_or_expr: logical_or_expr OR_OP • logical_and_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    logical_and_expr     go to state 121
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 94
+
+   53 logical_and_expr: logical_and_expr AND_OP • not_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    not_expr             go to state 122
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 95
+
+   57 relational_expr: relational_expr EQ_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 123
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 96
+
+   58 relational_expr: relational_expr NEQ_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 124
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 97
+
+   59 relational_expr: relational_expr LT_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 125
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 98
+
+   60 relational_expr: relational_expr LTE_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 126
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 99
+
+   61 relational_expr: relational_expr GT_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 127
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 100
+
+   62 relational_expr: relational_expr GTE_OP • additive_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    additive_expr        go to state 128
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 101
+
+   64 additive_expr: additive_expr '+' • multiplicative_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    multiplicative_expr  go to state 129
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 102
+
+   65 additive_expr: additive_expr '-' • multiplicative_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    multiplicative_expr  go to state 130
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 103
+
+   69 multiplicative_expr: multiplicative_expr DIV_OP • unary_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node        go to state 61
+    int_num_node   go to state 62
+    real_num_node  go to state 63
+    unary_expr     go to state 131
+    primary        go to state 72
+
+
+State 104
+
+   67 multiplicative_expr: multiplicative_expr '*' • unary_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node        go to state 61
+    int_num_node   go to state 62
+    real_num_node  go to state 63
+    unary_expr     go to state 132
+    primary        go to state 72
+
+
+State 105
+
+   68 multiplicative_expr: multiplicative_expr '/' • unary_expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node        go to state 61
+    int_num_node   go to state 62
+    real_num_node  go to state 63
+    unary_expr     go to state 133
+    primary        go to state 72
+
+
+State 106
+
+   40 statement: WHILE expr DO • statement
+
+    IDENT           shift, and go to state 3
+    BEGIN_TOKEN     shift, and go to state 19
+    IF              shift, and go to state 33
+    WHILE           shift, and go to state 34
+    RETURN_KEYWORD  shift, and go to state 35
+
+    id_node              go to state 36
+    compound_statement   go to state 37
+    statement            go to state 134
+    return_statement     go to state 42
+    variable             go to state 43
+    procedure_statement  go to state 44
+
+
+State 107
+
+   44 variable: id_node '[' expr • ']'
+
+    ']'  shift, and go to state 135
+
+
+State 108
+
+   46 procedure_statement: id_node '(' expression_list • ')'
+   48 expression_list: expression_list • ',' expr
+
+    ','  shift, and go to state 136
+    ')'  shift, and go to state 137
+
+
+State 109
+
+   47 expression_list: expr •
+
+    $default  reduce using rule 47 (expression_list)
+
+
+State 110
+
+   34 statement_list: statement_list ';' statement •
+
+    $default  reduce using rule 34 (statement_list)
+
+
+State 111
+
+   35 statement: variable ASSIGN_OP expr •
+
+    $default  reduce using rule 35 (statement)
+
+
+State 112
+
+   11 type: ARRAY '[' int_num_node DOTDOT • int_num_node ']' OF standard_type
+
+    NUM  shift, and go to state 53
+
+    int_num_node  go to state 138
+
+
+State 113
+
+   27 parameter_declaration_group: identifier_list ':' • type
+
+    ARRAY         shift, and go to state 25
+    INTEGER_TYPE  shift, and go to state 26
+    REAL_TYPE     shift, and go to state 27
+    BOOLEAN_TYPE  shift, and go to state 28
+
+    type           go to state 139
+    standard_type  go to state 30
+
+
+State 114
+
+   26 parameter_list: parameter_list ';' • parameter_declaration_group
+
+    IDENT  shift, and go to state 3
+
+    id_node                      go to state 9
+    identifier_list              go to state 82
+    parameter_declaration_group  go to state 140
+
+
+State 115
+
+   24 arguments: '(' parameter_list ')' •
+
+    $default  reduce using rule 24 (arguments)
+
+
+State 116
+
+   21 subprogram_head: FUNCTION id_node arguments ':' standard_type • ';'
+
+    ';'  shift, and go to state 141
+
+
+State 117
+
+   79 primary: '(' expr ')' •
+
+    $default  reduce using rule 79 (primary)
+
+
+State 118
+
+   72 primary: id_node '[' expr • ']'
+
+    ']'  shift, and go to state 142
+
+
+State 119
+
+   48 expression_list: expression_list • ',' expr
+   73 primary: id_node '(' expression_list • ')'
+
+    ','  shift, and go to state 136
+    ')'  shift, and go to state 143
+
+
+State 120
+
+   38 statement: IF expr THEN statement •
+   39          | IF expr THEN statement • ELSE statement
+
+    ELSE  shift, and go to state 144
+
+    $default  reduce using rule 38 (statement)
+
+
+State 121
+
+   51 logical_or_expr: logical_or_expr OR_OP logical_and_expr •
+   53 logical_and_expr: logical_and_expr • AND_OP not_expr
+
+    AND_OP  shift, and go to state 94
+
+    $default  reduce using rule 51 (logical_or_expr)
+
+
+State 122
+
+   53 logical_and_expr: logical_and_expr AND_OP not_expr •
+
+    $default  reduce using rule 53 (logical_and_expr)
+
+
+State 123
+
+   57 relational_expr: relational_expr EQ_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 57 (relational_expr)
+
+
+State 124
+
+   58 relational_expr: relational_expr NEQ_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 58 (relational_expr)
+
+
+State 125
+
+   59 relational_expr: relational_expr LT_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 59 (relational_expr)
+
+
+State 126
+
+   60 relational_expr: relational_expr LTE_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 60 (relational_expr)
+
+
+State 127
+
+   61 relational_expr: relational_expr GT_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 61 (relational_expr)
+
+
+State 128
+
+   62 relational_expr: relational_expr GTE_OP additive_expr •
+   64 additive_expr: additive_expr • '+' multiplicative_expr
+   65              | additive_expr • '-' multiplicative_expr
+
+    '+'  shift, and go to state 101
+    '-'  shift, and go to state 102
+
+    $default  reduce using rule 62 (relational_expr)
+
+
+State 129
+
+   64 additive_expr: additive_expr '+' multiplicative_expr •
+   67 multiplicative_expr: multiplicative_expr • '*' unary_expr
+   68                    | multiplicative_expr • '/' unary_expr
+   69                    | multiplicative_expr • DIV_OP unary_expr
+
+    DIV_OP  shift, and go to state 103
+    '*'     shift, and go to state 104
+    '/'     shift, and go to state 105
+
+    $default  reduce using rule 64 (additive_expr)
+
+
+State 130
+
+   65 additive_expr: additive_expr '-' multiplicative_expr •
+   67 multiplicative_expr: multiplicative_expr • '*' unary_expr
+   68                    | multiplicative_expr • '/' unary_expr
+   69                    | multiplicative_expr • DIV_OP unary_expr
+
+    DIV_OP  shift, and go to state 103
+    '*'     shift, and go to state 104
+    '/'     shift, and go to state 105
+
+    $default  reduce using rule 65 (additive_expr)
+
+
+State 131
+
+   69 multiplicative_expr: multiplicative_expr DIV_OP unary_expr •
+
+    $default  reduce using rule 69 (multiplicative_expr)
+
+
+State 132
+
+   67 multiplicative_expr: multiplicative_expr '*' unary_expr •
+
+    $default  reduce using rule 67 (multiplicative_expr)
+
+
+State 133
+
+   68 multiplicative_expr: multiplicative_expr '/' unary_expr •
+
+    $default  reduce using rule 68 (multiplicative_expr)
+
+
+State 134
+
+   40 statement: WHILE expr DO statement •
+
+    $default  reduce using rule 40 (statement)
+
+
+State 135
+
+   44 variable: id_node '[' expr ']' •
+
+    $default  reduce using rule 44 (variable)
+
+
+State 136
+
+   48 expression_list: expression_list ',' • expr
+
+    NUM             shift, and go to state 53
+    REAL_LITERAL    shift, and go to state 54
+    IDENT           shift, and go to state 3
+    TRUE_KEYWORD    shift, and go to state 55
+    FALSE_KEYWORD   shift, and go to state 56
+    NOT_OP          shift, and go to state 57
+    STRING_LITERAL  shift, and go to state 58
+    '-'             shift, and go to state 59
+    '('             shift, and go to state 60
+
+    id_node              go to state 61
+    int_num_node         go to state 62
+    real_num_node        go to state 63
+    expr                 go to state 145
+    logical_or_expr      go to state 65
+    logical_and_expr     go to state 66
+    not_expr             go to state 67
+    relational_expr      go to state 68
+    additive_expr        go to state 69
+    multiplicative_expr  go to state 70
+    unary_expr           go to state 71
+    primary              go to state 72
+
+
+State 137
+
+   46 procedure_statement: id_node '(' expression_list ')' •
+
+    $default  reduce using rule 46 (procedure_statement)
+
+
+State 138
+
+   11 type: ARRAY '[' int_num_node DOTDOT int_num_node • ']' OF standard_type
+
+    ']'  shift, and go to state 146
+
+
+State 139
+
+   27 parameter_declaration_group: identifier_list ':' type •
+
+    $default  reduce using rule 27 (parameter_declaration_group)
+
+
+State 140
+
+   26 parameter_list: parameter_list ';' parameter_declaration_group •
+
+    $default  reduce using rule 26 (parameter_list)
+
+
+State 141
+
+   21 subprogram_head: FUNCTION id_node arguments ':' standard_type ';' •
+
+    $default  reduce using rule 21 (subprogram_head)
+
+
+State 142
+
+   72 primary: id_node '[' expr ']' •
+
+    $default  reduce using rule 72 (primary)
+
+
+State 143
+
+   73 primary: id_node '(' expression_list ')' •
+
+    $default  reduce using rule 73 (primary)
+
+
+State 144
+
+   39 statement: IF expr THEN statement ELSE • statement
+
+    IDENT           shift, and go to state 3
+    BEGIN_TOKEN     shift, and go to state 19
+    IF              shift, and go to state 33
+    WHILE           shift, and go to state 34
+    RETURN_KEYWORD  shift, and go to state 35
+
+    id_node              go to state 36
+    compound_statement   go to state 37
+    statement            go to state 147
+    return_statement     go to state 42
+    variable             go to state 43
+    procedure_statement  go to state 44
+
+
+State 145
+
+   48 expression_list: expression_list ',' expr •
+
+    $default  reduce using rule 48 (expression_list)
+
+
+State 146
+
+   11 type: ARRAY '[' int_num_node DOTDOT int_num_node ']' • OF standard_type
+
+    OF  shift, and go to state 148
+
+
+State 147
+
+   39 statement: IF expr THEN statement ELSE statement •
+
+    $default  reduce using rule 39 (statement)
+
+
+State 148
+
+   11 type: ARRAY '[' int_num_node DOTDOT int_num_node ']' OF • standard_type
+
+    INTEGER_TYPE  shift, and go to state 26
+    REAL_TYPE     shift, and go to state 27
+    BOOLEAN_TYPE  shift, and go to state 28
+
+    standard_type  go to state 149
+
+
+State 149
+
+   11 type: ARRAY '[' int_num_node DOTDOT int_num_node ']' OF standard_type •
+
+    $default  reduce using rule 11 (type)
