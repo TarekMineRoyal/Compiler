@@ -2,12 +2,14 @@
 #include "ast.h"
 #include "parser.h"
 #include "semantic_analyzer.h"
+#include "codegenerator.h"
 #include <iostream>
 #include <fstream>
+#include <string>
 
 extern ProgramNode* root_ast_node;
 extern int yyparse();
-extern FILE* yyin; // For Flex input file
+extern FILE* yyin;
 
 int main(int argc, char* argv[]) {
     if (argc > 1) {
@@ -18,62 +20,68 @@ int main(int argc, char* argv[]) {
         }
     }
     else {
-        // Optionally, allow stdin if no file is provided
-        std::cout << "No input file specified. Reading from stdin (Ctrl+D or Ctrl+Z to end)." << std::endl;
+        std::cout << "Usage: ./my_compiler <input_file.pas>" << std::endl;
+        return 1;
     }
 
-    yydebug = 0; // Change it to ture for Bison debug output
+    yydebug = 0; // Set to 1 for parser debug info
 
     std::cout << "Starting parsing..." << std::endl;
     int parse_result = yyparse();
 
     if (argc > 1 && yyin) {
-        fclose(yyin); // Close the file if one was opened
+        fclose(yyin);
     }
 
     if (parse_result == 0 && root_ast_node != nullptr) {
         std::cout << "Parsing successful!" << std::endl;
 
         // --- Semantic Analysis ---
-        std::cout << "Starting semantic analysis..." << std::endl;
         SemanticAnalyzer semanticAnalyzer;
-        try {
-            root_ast_node->accept(semanticAnalyzer); // Start semantic analysis
+        root_ast_node->accept(semanticAnalyzer);
 
-            if (semanticAnalyzer.hasErrors()) {
-                std::cerr << "Semantic analysis failed with the following errors:" << std::endl;
-                semanticAnalyzer.printErrors(std::cerr);
-                // Decide if you want to print AST or stop
+        if (semanticAnalyzer.hasErrors()) {
+            std::cerr << "\nSemantic analysis failed with errors:" << std::endl;
+            semanticAnalyzer.printErrors(std::cerr);
+            delete root_ast_node;
+            return 1;
+        }
+        std::cout << "Semantic analysis successful!" << std::endl;
+
+        // --- Code Generation ---
+        std::cout << "Starting code generation..." << std::endl;
+        CodeGenerator codeGenerator;
+        try {
+            // Generate the assembly code as a string
+            std::string assemblyCode = codeGenerator.generateCode(*root_ast_node, semanticAnalyzer);
+
+            // Write the generated code to an output file
+            std::string outputFilename = "output.vm";
+            std::ofstream outfile(outputFilename);
+            if (!outfile) {
+                std::cerr << "Error: Could not open output file " << outputFilename << std::endl;
             }
             else {
-                std::cout << "Semantic analysis successful!" << std::endl;
+                outfile << assemblyCode;
+                std::cout << "Code generation successful! Assembly written to " << outputFilename << std::endl;
+                std::cout << "Run with: vm.exe " << outputFilename << std::endl;
             }
+
         }
-        catch (const std::exception& e) {
-            std::cerr << "Semantic analysis crashed: " << e.what() << std::endl;
+        catch (const std::runtime_error& e) {
+            std::cerr << "Code generation crashed: " << e.what() << std::endl;
+            delete root_ast_node;
+            return 1;
         }
-        // --- End Semantic Analysis ---
 
-
-        // Print AST only if no semantic errors or for debugging
-        // if (!semanticAnalyzer.hasErrors()) { // Or always print for debugging
-        std::cout << "\n--- AST Dump ---" << std::endl;
-        root_ast_node->print(std::cout, 0);
-        std::cout << "--- End AST Dump ---" << std::endl;
-        // }
-
-        delete root_ast_node; // Cleanup AST
-        root_ast_node = nullptr;
+        delete root_ast_node;
 
     }
     else {
         std::cout << "Parsing failed." << std::endl;
-        if (root_ast_node) { // Should be null on parse error, but good practice
-            delete root_ast_node;
-            root_ast_node = nullptr;
-        }
+        if (root_ast_node) delete root_ast_node;
+        return 1;
     }
-    int x;
-    std::cin >> x;
+
     return 0;
 }

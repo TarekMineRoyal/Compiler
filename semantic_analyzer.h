@@ -12,7 +12,10 @@ class SemanticAnalyzer : public SemanticVisitor {
 private:
     SymbolTable symbolTable;
     FunctionHeadNode* currentFunctionContext; 
-    std::vector<std::string> semanticErrors;  
+    std::vector<std::string> semanticErrors;
+    int global_offset = 0;
+    int local_offset = 0;
+    int param_offset = 0;
 
     void recordError(const std::string& message, int line, int col);
     EntryTypeCategory astToSymbolType(TypeNode* astTypeNode, ArrayDetails& outArrayDetails);
@@ -26,6 +29,7 @@ private:
 
 public:
     SemanticAnalyzer();
+    SymbolTable& getSymbolTable() { return symbolTable; }
 
     void visit(ProgramNode& node) override;
     void visit(IdentifierList& node) override;

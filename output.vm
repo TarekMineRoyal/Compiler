@@ -1,0 +1,10 @@
+    START
+main_entry:
+    PUSHN 1
+    PUSHI 6
+    STOREG 0
+    PUSHG 0
+    WRITEI
+    PUSHS " "
+    WRITES
+    STOP

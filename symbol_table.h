@@ -13,6 +13,7 @@ public:
     std::string name;
     SymbolKind kind;
     EntryTypeCategory type;
+    int offset;
 
     ArrayDetails arrayDetails;
     EntryTypeCategory functionReturnType;

@@ -441,7 +441,9 @@ void SubprogramDeclarations::print(std::ostream& out, int indentLevel) const {
 
 // (VariableNode print)
 VariableNode::VariableNode(IdentNode* id, ExprNode* idx, int l, int c)
-    : ExprNode(l, c), identifier(id), index(idx) {
+    : ExprNode(l, c), identifier(id), index(idx),
+    offset(0), scope(SymbolScope::GLOBAL), kind(SymbolKind::UNKNOWN)
+{
     if (identifier) identifier->father = this;
     if (index) index->father = this;
 }
@@ -530,7 +532,8 @@ void ProcedureCallStatementNode::print(std::ostream& out, int indentLevel) const
 }
 
 // (IdExprNode print)
-IdExprNode::IdExprNode(IdentNode* id_node, int l, int c) : ExprNode(l, c), ident(id_node) {
+IdExprNode::IdExprNode(IdentNode* id_node, int l, int c)
+    : ExprNode(l, c), ident(id_node), offset(0), kind(SymbolKind::UNKNOWN), scope(SymbolScope::GLOBAL) { // Initialize new members
     if (ident) ident->father = this;
 }
 void IdExprNode::print(std::ostream& out, int indentLevel) const {
@@ -538,6 +541,9 @@ void IdExprNode::print(std::ostream& out, int indentLevel) const {
     out << "IdExprNode (L:" << line << ", C:" << column << ")" << std::endl;
     print_indent(out, indentLevel + 1); out << "Identifier:" << std::endl;
     if (ident) ident->print(out, indentLevel + 2); else { print_indent(out, indentLevel + 2); out << "nullptr" << std::endl; }
+    print_indent(out, indentLevel + 1); out << "Kind: " << symbolKindToString(kind) << std::endl;
+    print_indent(out, indentLevel + 1); out << "Scope: " << (scope == SymbolScope::GLOBAL ? "GLOBAL" : "LOCAL") << std::endl;
+    print_indent(out, indentLevel + 1); out << "Offset: " << offset << std::endl;
 }
 
 // (FunctionCallExprNode print)

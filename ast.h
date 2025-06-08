@@ -264,10 +264,14 @@ public:
     void accept(SemanticVisitor& visitor) override;
 };
 
+enum class SymbolScope { GLOBAL, LOCAL };
 class VariableNode : public ExprNode {
 public:
     IdentNode* identifier;
     ExprNode* index;
+    int offset;
+    SymbolKind kind;
+    SymbolScope scope;
     VariableNode(IdentNode* id, ExprNode* idx, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
     void accept(SemanticVisitor& visitor) override;
@@ -313,6 +317,10 @@ public:
 class IdExprNode : public ExprNode {
 public:
     IdentNode* ident;
+    // Added for semantic analysis info
+    int offset;
+    SymbolKind kind;
+    SymbolScope scope;
     IdExprNode(IdentNode* id, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
     void accept(SemanticVisitor& visitor) override;

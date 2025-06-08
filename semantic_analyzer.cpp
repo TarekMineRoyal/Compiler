@@ -2,7 +2,7 @@
 #include <iostream> 
 
 // Constructor: Pre-populate symbol table with built-in I/O procedures
-SemanticAnalyzer::SemanticAnalyzer() : currentFunctionContext(nullptr) {
+SemanticAnalyzer::SemanticAnalyzer() : currentFunctionContext(nullptr), global_offset(0), local_offset(0), param_offset(0) {
     // Built-in procedures are added to the global scope.
     // They don't have a MiniPascal-defined signature in the same way user procedures do.
     // We'll use an empty signature for their SymbolEntry, and rely on name-based checking
@@ -127,7 +127,16 @@ void SemanticAnalyzer::visit(VarDecl& node) {
     for (IdentNode* identNode : node.identifiers->identifiers) {
         if (!identNode) continue;
 
+        int current_offset;
+        if (symbolTable.isGlobalScope()) {
+            current_offset = global_offset++;
+        }
+        else { // Local scope (inside a subprogram)
+            current_offset = local_offset++;
+        }
+
         SymbolEntry entry(identNode->name, SymbolKind::VARIABLE, var_type, identNode->line, identNode->column);
+        entry.offset = current_offset;
         if (var_type == EntryTypeCategory::ARRAY) {
             entry.arrayDetails = ad;
         }
@@ -152,32 +161,40 @@ void SemanticAnalyzer::visit(SubprogramDeclaration& node) {
         return;
     }
 
+    // First, process the head to add the subprogram name to the current (outer) scope
     node.head->accept(*this);
 
+    // Now, enter a new scope for the parameters and local variables of this subprogram
     symbolTable.enterScope();
+    local_offset = 0; // Reset for local variables within this subprogram
+    param_offset = 0; // Reset for parameters of this subprogram
 
     FunctionHeadNode* previousFunctionContext = currentFunctionContext;
     if (auto funcHead = dynamic_cast<FunctionHeadNode*>(node.head)) {
         currentFunctionContext = funcHead;
     }
     else {
-        currentFunctionContext = nullptr;
+        currentFunctionContext = nullptr; // It's a procedure
     }
 
+    // Process parameters - they are added to the new inner scope
     if (node.head->arguments) {
         node.head->arguments->accept(*this);
     }
 
+    // Process local declarations - also added to the new inner scope
     if (node.local_declarations) {
         node.local_declarations->accept(*this);
     }
 
+    // Process the body of the subprogram
     if (node.body) {
         node.body->accept(*this);
     }
 
+    // Exit the scope for this subprogram
     symbolTable.exitScope();
-    currentFunctionContext = previousFunctionContext;
+    currentFunctionContext = previousFunctionContext; // Restore context
 }
 
 void SemanticAnalyzer::visit(FunctionHeadNode& node) {
@@ -193,10 +210,10 @@ void SemanticAnalyzer::visit(FunctionHeadNode& node) {
     if (node.arguments && node.arguments->params) {
         for (const auto& param_decl_group : node.arguments->params->paramDeclarations) {
             if (param_decl_group && param_decl_group->ids && param_decl_group->type) {
-                ArrayDetails ad;
-                EntryTypeCategory param_cat_type = astToSymbolType(param_decl_group->type, ad);
+                ArrayDetails ad_param; // Use a fresh ArrayDetails for each param group type
+                EntryTypeCategory param_cat_type = astToSymbolType(param_decl_group->type, ad_param);
                 for (size_t i = 0; i < param_decl_group->ids->identifiers.size(); ++i) {
-                    signature.push_back({ param_cat_type, ad });
+                    signature.push_back({ param_cat_type, ad_param });
                 }
             }
             else if (param_decl_group) {
@@ -206,6 +223,8 @@ void SemanticAnalyzer::visit(FunctionHeadNode& node) {
     }
 
     SymbolEntry entry(node.name->name, return_type, signature, node.name->line, node.name->column);
+    // The function/procedure itself doesn't have an 'offset' in the traditional variable sense.
+    // Its "offset" is its starting address in the code, which is handled by labels.
     if (!symbolTable.addSymbol(entry)) {
         SymbolEntry* existing = symbolTable.lookupSymbolInCurrentScope(node.name->name);
         std::string conflictMsg = existing ? " Conflicts with existing " + symbolKindToString(existing->kind) + " declared at L:" + std::to_string(existing->declLine) : "";
@@ -218,10 +237,10 @@ void SemanticAnalyzer::visit(ProcedureHeadNode& node) {
     if (node.arguments && node.arguments->params) {
         for (const auto& param_decl_group : node.arguments->params->paramDeclarations) {
             if (param_decl_group && param_decl_group->ids && param_decl_group->type) {
-                ArrayDetails ad;
-                EntryTypeCategory param_cat_type = astToSymbolType(param_decl_group->type, ad);
+                ArrayDetails ad_param;
+                EntryTypeCategory param_cat_type = astToSymbolType(param_decl_group->type, ad_param);
                 for (size_t i = 0; i < param_decl_group->ids->identifiers.size(); ++i) {
-                    signature.push_back({ param_cat_type, ad });
+                    signature.push_back({ param_cat_type, ad_param });
                 }
             }
             else if (param_decl_group) {
@@ -238,6 +257,7 @@ void SemanticAnalyzer::visit(ProcedureHeadNode& node) {
 }
 
 void SemanticAnalyzer::visit(ArgumentsNode& node) {
+    // This method processes the parameters *within* the new scope of the subprogram.
     if (node.params) {
         node.params->accept(*this);
     }
@@ -255,11 +275,12 @@ void SemanticAnalyzer::visit(ParameterDeclaration& node) {
         if (!identNode) continue;
 
         SymbolEntry entry(identNode->name, SymbolKind::PARAMETER, param_type, identNode->line, identNode->column);
+        entry.offset = param_offset++; // Assign and increment parameter offset
         if (param_type == EntryTypeCategory::ARRAY) {
             entry.arrayDetails = ad;
         }
 
-        if (!symbolTable.addSymbol(entry)) {
+        if (!symbolTable.addSymbol(entry)) { // Add to the current (subprogram's) scope
             SymbolEntry* existing = symbolTable.lookupSymbolInCurrentScope(identNode->name);
             std::string conflictMsg = existing ? " Conflicts with existing " + symbolKindToString(existing->kind) + " declared at L:" + std::to_string(existing->declLine) : "";
             recordError("Parameter '" + identNode->name + "' re-declared in this scope." + conflictMsg, identNode->line, identNode->column);
@@ -301,13 +322,22 @@ void SemanticAnalyzer::visit(AssignStatementNode& node) {
     EntryTypeCategory rhsType = node.expression->determinedType;
 
     if (lhsType == EntryTypeCategory::UNKNOWN_TYPE || rhsType == EntryTypeCategory::UNKNOWN_TYPE) {
+        // An error was already recorded for the variable or expression.
         return;
     }
 
     bool compatible = false;
     if (lhsType == rhsType) {
         if (lhsType == EntryTypeCategory::ARRAY) {
-            recordError("Whole array assignment to '" + node.variable->identifier->name + "' is not supported.", node.line, node.column);
+            // If this is an array element access on LHS, it's fine. 
+            // If it's a whole array variable, then error.
+            // VariableNode->index being non-null means it's an element access.
+            if (node.variable->index == nullptr) {
+                recordError("Whole array assignment to '" + node.variable->identifier->name + "' is not supported.", node.line, node.column);
+            }
+            else {
+                compatible = true; // Assigning to an array element
+            }
         }
         else {
             compatible = true;
@@ -329,7 +359,7 @@ void SemanticAnalyzer::visit(IfStatementNode& node) {
     if (node.condition) {
         node.condition->accept(*this);
         if (node.condition->determinedType != EntryTypeCategory::PRIMITIVE_BOOLEAN &&
-            node.condition->determinedType != EntryTypeCategory::UNKNOWN_TYPE) {
+            node.condition->determinedType != EntryTypeCategory::UNKNOWN_TYPE) { // Avoid cascading errors
             recordError("IF condition expression evaluated to " + entryTypeToString(node.condition->determinedType) +
                 ", but BOOLEAN was expected.", node.condition->line, node.condition->column);
         }
@@ -345,7 +375,7 @@ void SemanticAnalyzer::visit(WhileStatementNode& node) {
     if (node.condition) {
         node.condition->accept(*this);
         if (node.condition->determinedType != EntryTypeCategory::PRIMITIVE_BOOLEAN &&
-            node.condition->determinedType != EntryTypeCategory::UNKNOWN_TYPE) {
+            node.condition->determinedType != EntryTypeCategory::UNKNOWN_TYPE) { // Avoid cascading errors
             recordError("WHILE condition expression evaluated to " + entryTypeToString(node.condition->determinedType) +
                 ", but BOOLEAN was expected.", node.condition->line, node.condition->column);
         }
@@ -372,13 +402,37 @@ void SemanticAnalyzer::visit(VariableNode& node) {
         return;
     }
 
+    // Annotate the AST node with info from the symbol table
+    node.offset = entry->offset;
+    node.kind = entry->kind;
+    if (entry->kind == SymbolKind::VARIABLE || entry->kind == SymbolKind::PARAMETER) {
+        // Determine scope based on where the symbol entry was found.
+        if (symbolTable.getCurrentLevel() > 0) { // Inside a subprogram
+            SymbolEntry* current_scope_check = symbolTable.lookupSymbolInCurrentScope(node.identifier->name);
+            if (current_scope_check) { // Found in current (local/param) scope
+                node.scope = SymbolScope::LOCAL;
+            }
+            else { // Found in an outer (global) scope
+                node.scope = SymbolScope::GLOBAL;
+            }
+        }
+        else { // Global scope
+            node.scope = SymbolScope::GLOBAL;
+        }
+    }
+    else {
+        // Default for things like function names used as variables (which is an error caught below)
+        node.scope = SymbolScope::GLOBAL; // Or UNKNOWN, but GLOBAL is safer for offset if misused
+    }
+
+
     if (entry->kind != SymbolKind::VARIABLE && entry->kind != SymbolKind::PARAMETER) {
         recordError("Identifier '" + node.identifier->name + "' (" + symbolKindToString(entry->kind) + ") cannot be used as a variable here.", node.identifier->line, node.identifier->column);
         node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
         return;
     }
 
-    if (node.index != nullptr) {
+    if (node.index != nullptr) { // Array element access
         if (entry->type != EntryTypeCategory::ARRAY) {
             recordError("Identifier '" + node.identifier->name + "' is of type " + entryTypeToString(entry->type) +
                 " and cannot be indexed as an array.", node.identifier->line, node.identifier->column);
@@ -392,9 +446,9 @@ void SemanticAnalyzer::visit(VariableNode& node) {
                 entryTypeToString(node.index->determinedType) + ".", node.index->line, node.index->column);
         }
         node.determinedType = entry->arrayDetails.elementType;
-        node.determinedArrayDetails.isInitialized = false;
+        node.determinedArrayDetails.isInitialized = false; // This is an an element, not a whole array
     }
-    else {
+    else { // Simple variable or whole array identifier
         node.determinedType = entry->type;
         if (entry->type == EntryTypeCategory::ARRAY) {
             node.determinedArrayDetails = entry->arrayDetails;
@@ -442,21 +496,46 @@ void SemanticAnalyzer::visit(ProcedureCallStatementNode& node) {
                 if (argExpr) {
                     // Arguments to read/readln must be variables (l-values)
                     VariableNode* varArg = dynamic_cast<VariableNode*>(argExpr);
-                    if (!varArg) {
+                    IdExprNode* idArg = dynamic_cast<IdExprNode*>(argExpr); // Handle simple IDs too
+
+                    if (!varArg && !idArg) {
                         recordError("Argument to '" + procNameStr + "' must be a variable.", argExpr->line, argExpr->column);
                         continue;
                     }
-                    varArg->accept(*this); // Determine type of the variable
-                    if (!isReadableType(varArg->determinedType)) {
-                        recordError("Variable argument of type " + entryTypeToString(varArg->determinedType) +
-                            " cannot be read into by '" + procNameStr + "'.", argExpr->line, argExpr->column);
+
+                    // Accept the node to determine its type and other properties
+                    argExpr->accept(*this);
+
+
+                    EntryTypeCategory argActualType = EntryTypeCategory::UNKNOWN_TYPE;
+                    std::string argName = "";
+                    bool isWholeArrayAccess = false;
+
+                    if (varArg) {
+                        argActualType = varArg->determinedType;
+                        argName = varArg->identifier->name;
+                        isWholeArrayAccess = (varArg->determinedType == EntryTypeCategory::ARRAY && varArg->index == nullptr);
                     }
-                    // Further check: if it's an array element, that's fine. If it's a whole array name, error.
-                    if (varArg->determinedType == EntryTypeCategory::ARRAY && varArg->index == nullptr) {
-                        recordError("Cannot read directly into an entire array '" + varArg->identifier->name +
-                            "' with '" + procNameStr + "'. Specify an element.", argExpr->line, argExpr->column);
+                    else if (idArg) { // It's a simple identifier, check its properties
+                        SymbolEntry* idEntry = symbolTable.lookupSymbol(idArg->ident->name);
+                        if (idEntry) {
+                            argActualType = idEntry->type;
+                            if (idEntry->type == EntryTypeCategory::ARRAY) { // If it's an array but used as simple ID
+                                isWholeArrayAccess = true;
+                            }
+                        }
+                        argName = idArg->ident->name;
                     }
 
+
+                    if (!isReadableType(argActualType)) {
+                        recordError("Variable argument of type " + entryTypeToString(argActualType) +
+                            " cannot be read into by '" + procNameStr + "'.", argExpr->line, argExpr->column);
+                    }
+                    if (isWholeArrayAccess) {
+                        recordError("Cannot read directly into an entire array '" + argName +
+                            "' with '" + procNameStr + "'. Specify an element.", argExpr->line, argExpr->column);
+                    }
                 }
             }
         }
@@ -474,29 +553,34 @@ void SemanticAnalyzer::visit(ProcedureCallStatementNode& node) {
         recordError("Procedure '" + procNameStr + "' called with " + std::to_string(actualArgCount) +
             " arguments, but definition expects " + std::to_string(entry->numParameters) + ".",
             node.procName->line, node.procName->column);
+        // Continue to check types for the arguments we do have, if counts match somewhat
     }
 
-    if (node.arguments) node.arguments->accept(*this);
+    if (node.arguments) node.arguments->accept(*this); // Process arguments to determine their types
 
-    if (node.arguments && entry->numParameters == actualArgCount && actualArgCount > 0) {
+    if (node.arguments && actualArgCount > 0 && entry->numParameters > 0) {
         auto actualArgIt = node.arguments->expressions.begin();
-        for (size_t i = 0; i < entry->numParameters; ++i, ++actualArgIt) {
-            if (actualArgIt == node.arguments->expressions.end()) break;
+        for (size_t i = 0; i < std::min(actualArgCount, entry->numParameters); ++i, ++actualArgIt) {
+            if (actualArgIt == node.arguments->expressions.end()) break; // Should not happen if counts match
             ExprNode* argExpr = *actualArgIt;
             if (!argExpr) continue;
 
             const auto& formalParamInfo = entry->formalParameterSignature[i];
             EntryTypeCategory expectedType = formalParamInfo.first;
             const ArrayDetails& expectedArrayDetails = formalParamInfo.second;
-            EntryTypeCategory actualType = argExpr->determinedType;
+            EntryTypeCategory actualType = argExpr->determinedType; // Type determined by visiting the argument
             const ArrayDetails& actualArrayDetails = argExpr->determinedArrayDetails;
 
             bool compatible = false;
             if (actualType == expectedType) {
                 if (expectedType == EntryTypeCategory::ARRAY) {
+                    // For array parameters, MiniPascal usually passes by reference conceptually,
+                    // but for by-value, the structures (element type, bounds) should match.
+                    // Your current system implies by-value.
                     compatible = (actualArrayDetails.isInitialized && expectedArrayDetails.isInitialized &&
                         actualArrayDetails.elementType == expectedArrayDetails.elementType &&
-                        (actualArrayDetails.lowBound == expectedArrayDetails.lowBound && actualArrayDetails.highBound == expectedArrayDetails.highBound)
+                        (actualArrayDetails.lowBound == expectedArrayDetails.lowBound && actualArrayDetails.highBound == expectedArrayDetails.highBound) // For strict matching
+                        // Or just actualArrayDetails.elementType == expectedArrayDetails.elementType if bounds don't need to match for parameters
                         );
                 }
                 else {
@@ -504,7 +588,7 @@ void SemanticAnalyzer::visit(ProcedureCallStatementNode& node) {
                 }
             }
             else if (expectedType == EntryTypeCategory::PRIMITIVE_REAL && actualType == EntryTypeCategory::PRIMITIVE_INTEGER) {
-                compatible = true;
+                compatible = true; // INTEGER can be passed to REAL parameter
             }
 
             if (!compatible) {
@@ -512,7 +596,7 @@ void SemanticAnalyzer::visit(ProcedureCallStatementNode& node) {
                     "'. Expected " + entryTypeToString(expectedType) +
                     (expectedType == EntryTypeCategory::ARRAY ? " of " + entryTypeToString(expectedArrayDetails.elementType) : "") +
                     " but got " + entryTypeToString(actualType) +
-                    (actualType == EntryTypeCategory::ARRAY ? " of " + entryTypeToString(actualArrayDetails.elementType) : "") + ".",
+                    (actualType == EntryTypeCategory::ARRAY && actualArrayDetails.isInitialized ? " of " + entryTypeToString(actualArrayDetails.elementType) : "") + ".",
                     argExpr->line, argExpr->column);
             }
         }
@@ -533,19 +617,19 @@ void SemanticAnalyzer::visit(RealNumNode& node) {
     node.determinedType = EntryTypeCategory::PRIMITIVE_REAL;
     node.determinedArrayDetails.isInitialized = false;
 }
-void SemanticAnalyzer::visit(BooleanLiteralNode& node) {
+void SemanticAnalyzer::visit(BooleanLiteralNode& node) { // Corrected: Removed extra 'void'
     node.determinedType = EntryTypeCategory::PRIMITIVE_BOOLEAN;
     node.determinedArrayDetails.isInitialized = false;
 }
-void SemanticAnalyzer::visit(StringLiteralNode& node) {
-    // This specific type is handled by isPrintableType for now.
-    // If we add a STRING_LITERAL to EntryTypeCategory, this would set it.
+void SemanticAnalyzer::visit(StringLiteralNode& node) { // Corrected: Removed extra 'void'
+    // In MiniPascal, string literals are primarily for 'write'. They don't have a formal type
+    // that can be assigned to variables. We mark it UNKNOWN_TYPE, and 'isPrintableType' handles it.
     node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
     node.determinedArrayDetails.isInitialized = false;
 }
 
 void SemanticAnalyzer::visit(BinaryOpNode& node) {
-    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
+    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE; // Default
     node.determinedArrayDetails.isInitialized = false;
 
     if (!node.left || !node.right) {
@@ -559,6 +643,7 @@ void SemanticAnalyzer::visit(BinaryOpNode& node) {
     EntryTypeCategory rightType = node.right->determinedType;
 
     if (leftType == EntryTypeCategory::UNKNOWN_TYPE || rightType == EntryTypeCategory::UNKNOWN_TYPE) {
+        // Error already recorded for operands
         return;
     }
 
@@ -574,7 +659,7 @@ void SemanticAnalyzer::visit(BinaryOpNode& node) {
                 entryTypeToString(leftType) + " and " + entryTypeToString(rightType) + ".", node.line, node.column);
         }
     }
-    else if (op == "/") {
+    else if (op == "/") { // Real division
         if ((leftType == EntryTypeCategory::PRIMITIVE_INTEGER || leftType == EntryTypeCategory::PRIMITIVE_REAL) &&
             (rightType == EntryTypeCategory::PRIMITIVE_INTEGER || rightType == EntryTypeCategory::PRIMITIVE_REAL)) {
             node.determinedType = EntryTypeCategory::PRIMITIVE_REAL;
@@ -584,7 +669,7 @@ void SemanticAnalyzer::visit(BinaryOpNode& node) {
                 entryTypeToString(leftType) + " and " + entryTypeToString(rightType) + ".", node.line, node.column);
         }
     }
-    else if (op == "DIV_OP") {
+    else if (op == "DIV_OP") { // Integer division
         if (leftType == EntryTypeCategory::PRIMITIVE_INTEGER && rightType == EntryTypeCategory::PRIMITIVE_INTEGER) {
             node.determinedType = EntryTypeCategory::PRIMITIVE_INTEGER;
         }
@@ -602,22 +687,33 @@ void SemanticAnalyzer::visit(BinaryOpNode& node) {
                 entryTypeToString(leftType) + " and " + entryTypeToString(rightType) + ".", node.line, node.column);
         }
     }
+    // Relational operators: EQ_OP, NEQ_OP, LT_OP, LTE_OP, GT_OP, GTE_OP
     else if (op == "EQ_OP" || op == "NEQ_OP" || op == "LT_OP" || op == "LTE_OP" || op == "GT_OP" || op == "GTE_OP") {
         bool compatibleTypesForRelational = false;
+        // Numeric types can be compared with each other
         if ((leftType == EntryTypeCategory::PRIMITIVE_INTEGER || leftType == EntryTypeCategory::PRIMITIVE_REAL) &&
             (rightType == EntryTypeCategory::PRIMITIVE_INTEGER || rightType == EntryTypeCategory::PRIMITIVE_REAL)) {
             compatibleTypesForRelational = true;
         }
+        // Booleans can only be compared for equality/inequality
         else if (leftType == EntryTypeCategory::PRIMITIVE_BOOLEAN && rightType == EntryTypeCategory::PRIMITIVE_BOOLEAN && (op == "EQ_OP" || op == "NEQ_OP")) {
             compatibleTypesForRelational = true;
         }
+        // Arrays cannot be compared directly
+        else if (leftType == EntryTypeCategory::ARRAY || rightType == EntryTypeCategory::ARRAY) {
+            recordError("Cannot directly compare arrays with operator '" + op + "'.", node.line, node.column);
+        }
+
 
         if (compatibleTypesForRelational) {
             node.determinedType = EntryTypeCategory::PRIMITIVE_BOOLEAN;
         }
         else {
-            recordError("Operands for relational operator '" + op + "' are not compatible or operation is not supported for types " +
-                entryTypeToString(leftType) + " and " + entryTypeToString(rightType) + ".", node.line, node.column);
+            // If not already caught by array check
+            if (!(leftType == EntryTypeCategory::ARRAY || rightType == EntryTypeCategory::ARRAY)) {
+                recordError("Operands for relational operator '" + op + "' are not compatible or operation is not supported for types " +
+                    entryTypeToString(leftType) + " and " + entryTypeToString(rightType) + ".", node.line, node.column);
+            }
         }
     }
     else {
@@ -626,7 +722,7 @@ void SemanticAnalyzer::visit(BinaryOpNode& node) {
 }
 
 void SemanticAnalyzer::visit(UnaryOpNode& node) {
-    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
+    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE; // Default
     node.determinedArrayDetails.isInitialized = false;
 
     if (!node.expression) {
@@ -637,10 +733,11 @@ void SemanticAnalyzer::visit(UnaryOpNode& node) {
     EntryTypeCategory operandType = node.expression->determinedType;
 
     if (operandType == EntryTypeCategory::UNKNOWN_TYPE) {
+        // Error already recorded for operand
         return;
     }
 
-    if (node.op == "-") {
+    if (node.op == "-") { // Unary minus
         if (operandType == EntryTypeCategory::PRIMITIVE_INTEGER || operandType == EntryTypeCategory::PRIMITIVE_REAL) {
             node.determinedType = operandType;
         }
@@ -664,7 +761,9 @@ void SemanticAnalyzer::visit(UnaryOpNode& node) {
 }
 
 void SemanticAnalyzer::visit(IdExprNode& node) {
-    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
+    // This node represents an identifier used directly as an expression.
+    // It could be a simple variable, a parameter, or a function call if the function takes no arguments.
+    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE; // Default
     node.determinedArrayDetails.isInitialized = false;
 
     if (!node.ident) {
@@ -677,27 +776,45 @@ void SemanticAnalyzer::visit(IdExprNode& node) {
         return;
     }
 
+    // Annotate IdExprNode with the details from the symbol table
+    node.offset = entry->offset;
+    node.kind = entry->kind;
+
     if (entry->kind == SymbolKind::VARIABLE || entry->kind == SymbolKind::PARAMETER) {
         node.determinedType = entry->type;
         if (entry->type == EntryTypeCategory::ARRAY) {
             node.determinedArrayDetails = entry->arrayDetails;
         }
+        // Determine scope for IdExprNode as well (similar to VariableNode)
+        if (symbolTable.getCurrentLevel() > 0) { // Inside a subprogram
+            SymbolEntry* current_scope_check = symbolTable.lookupSymbolInCurrentScope(node.ident->name);
+            if (current_scope_check && current_scope_check->declLine == entry->declLine && current_scope_check->declColumn == entry->declColumn) {
+                node.scope = SymbolScope::LOCAL;
+            }
+            else {
+                node.scope = SymbolScope::GLOBAL;
+            }
+        }
+        else {
+            node.scope = SymbolScope::GLOBAL;
+        }
     }
     else if (entry->kind == SymbolKind::FUNCTION) {
-        if (entry->numParameters == 0) {
+        if (entry->numParameters == 0) { // Parameterless function call
             node.determinedType = entry->functionReturnType;
         }
         else {
             recordError("Function '" + node.ident->name + "' requires arguments and parentheses for call.", node.ident->line, node.ident->column);
         }
+        node.scope = SymbolScope::GLOBAL; // Functions are always global in this context
     }
     else {
-        recordError("Identifier '" + node.ident->name + "' (" + symbolKindToString(entry->kind) + ") cannot be used as a simple expression here.", node.ident->line, node.ident->column);
+        recordError("Identifier '" + node.ident->name + "' (" + symbolKindToString(entry->kind) + ") cannot be used as a simple expression here (e.g., might be a procedure).", node.ident->line, node.ident->column);
     }
 }
 
 void SemanticAnalyzer::visit(FunctionCallExprNode& node) {
-    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE;
+    node.determinedType = EntryTypeCategory::UNKNOWN_TYPE; // Default
     node.determinedArrayDetails.isInitialized = false;
 
     if (!node.funcName) {
@@ -714,7 +831,7 @@ void SemanticAnalyzer::visit(FunctionCallExprNode& node) {
         return;
     }
 
-    node.determinedType = entry->functionReturnType;
+    node.determinedType = entry->functionReturnType; // Set the type of the expression to the function's return type
 
     size_t actualArgCount = node.arguments ? node.arguments->expressions.size() : 0;
     if (actualArgCount != entry->numParameters) {
@@ -723,28 +840,29 @@ void SemanticAnalyzer::visit(FunctionCallExprNode& node) {
             node.funcName->line, node.funcName->column);
     }
 
-    if (node.arguments) node.arguments->accept(*this);
+    if (node.arguments) node.arguments->accept(*this); // Process arguments to determine their types
 
-    if (node.arguments && entry->numParameters == actualArgCount && actualArgCount > 0) {
+    // Argument type checking (same as for procedures)
+    if (node.arguments && actualArgCount > 0 && entry->numParameters > 0) {
         auto actualArgIt = node.arguments->expressions.begin();
-        for (size_t i = 0; i < entry->numParameters; ++i, ++actualArgIt) {
+        for (size_t i = 0; i < std::min(actualArgCount, entry->numParameters); ++i, ++actualArgIt) {
             if (actualArgIt == node.arguments->expressions.end()) break;
             ExprNode* argExpr = *actualArgIt;
             if (!argExpr) continue;
 
             const auto& formalParamInfo = entry->formalParameterSignature[i];
             EntryTypeCategory expectedType = formalParamInfo.first;
-            const ArrayDetails& expectedArrayDetails = formalParamInfo.second;
+            const ArrayDetails& expectedArrayDetails = formalParamInfo.second; // if formal is array
             EntryTypeCategory actualType = argExpr->determinedType;
-            const ArrayDetails& actualArrayDetails = argExpr->determinedArrayDetails;
+            const ArrayDetails& actualArrayDetails = argExpr->determinedArrayDetails; // if actual is array
 
             bool compatible = false;
             if (actualType == expectedType) {
                 if (expectedType == EntryTypeCategory::ARRAY) {
                     compatible = (actualArrayDetails.isInitialized && expectedArrayDetails.isInitialized &&
-                        actualArrayDetails.elementType == expectedArrayDetails.elementType &&
-                        (actualArrayDetails.lowBound == expectedArrayDetails.lowBound && actualArrayDetails.highBound == expectedArrayDetails.highBound)
-                        );
+                        actualArrayDetails.elementType == expectedArrayDetails.elementType);
+                    // Bounds checking for parameters might be too strict for by-value,
+                    // often only element type matters.
                 }
                 else {
                     compatible = true;
@@ -759,7 +877,7 @@ void SemanticAnalyzer::visit(FunctionCallExprNode& node) {
                     "'. Expected " + entryTypeToString(expectedType) +
                     (expectedType == EntryTypeCategory::ARRAY ? " of " + entryTypeToString(expectedArrayDetails.elementType) : "") +
                     " but got " + entryTypeToString(actualType) +
-                    (actualType == EntryTypeCategory::ARRAY ? " of " + entryTypeToString(actualArrayDetails.elementType) : "") + ".",
+                    (actualType == EntryTypeCategory::ARRAY && actualArrayDetails.isInitialized ? " of " + entryTypeToString(actualArrayDetails.elementType) : "") + ".",
                     argExpr->line, argExpr->column);
             }
         }
@@ -769,10 +887,22 @@ void SemanticAnalyzer::visit(FunctionCallExprNode& node) {
 void SemanticAnalyzer::visit(ReturnStatementNode& node) {
     if (!currentFunctionContext || !currentFunctionContext->name) {
         recordError("RETURN statement found outside of a function or in a function with no name context.", node.line, node.column);
+        // If it's a procedure, RETURN is allowed without a value (implicitly).
+        // But the grammar for RETURN probably always expects an expression.
+        // Let's assume for now the grammar forces an expression.
+        if (!node.returnValue) { // If grammar allows 'RETURN;' in procedure
+            // If currentFunctionContext is null, it means we are in a procedure.
+            // RETURN; is valid in a procedure.
+            if (currentFunctionContext != nullptr) { // Error only if in function and no value
+                recordError("RETURN statement in function '" + (currentFunctionContext->name ? currentFunctionContext->name->name : "unknown") +
+                    "' has no return value, which is required.", node.line, node.column);
+            }
+        }
         return;
     }
+    // We are in a function context.
     if (!node.returnValue) {
-        recordError("RETURN statement in function '" + (currentFunctionContext->name ? currentFunctionContext->name->name : "unknown") +
+        recordError("RETURN statement in function '" + currentFunctionContext->name->name +
             "' has no return value, which is required.", node.line, node.column);
         return;
     }
@@ -783,7 +913,7 @@ void SemanticAnalyzer::visit(ReturnStatementNode& node) {
     SymbolEntry* funcEntry = symbolTable.lookupSymbol(currentFunctionContext->name->name);
     if (!funcEntry || funcEntry->kind != SymbolKind::FUNCTION) {
         recordError("Internal error: Could not retrieve definition for current function '" +
-            (currentFunctionContext->name ? currentFunctionContext->name->name : "unknown") + "' for return check.", node.line, node.column);
+            currentFunctionContext->name->name + "' for return check.", node.line, node.column);
         return;
     }
     EntryTypeCategory expectedReturnType = funcEntry->functionReturnType;
@@ -793,10 +923,10 @@ void SemanticAnalyzer::visit(ReturnStatementNode& node) {
         compatible = true;
     }
     else if (expectedReturnType == EntryTypeCategory::PRIMITIVE_REAL && actualReturnType == EntryTypeCategory::PRIMITIVE_INTEGER) {
-        compatible = true;
+        compatible = true; // INTEGER can be returned for a REAL function type
     }
 
-    if (!compatible && actualReturnType != EntryTypeCategory::UNKNOWN_TYPE) {
+    if (!compatible && actualReturnType != EntryTypeCategory::UNKNOWN_TYPE) { // Avoid cascading
         recordError("Return type mismatch in function '" + currentFunctionContext->name->name +
             "'. Function expects " + entryTypeToString(expectedReturnType) +
             " but RETURN statement provides " + entryTypeToString(actualReturnType) + ".",
