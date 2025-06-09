@@ -1,12 +1,21 @@
-PROGRAM Test;
+PROGRAM FullTest;
 VAR
-  result: INTEGER;
-FUNCTION GetNumber(a: INTEGER): INTEGER;
-BEGIN
-  RETURN 100;
-END;
+  x, y, z: INTEGER;
+  
+FUNCTION addition(a: INTEGER; b: INTEGER): INTEGER;
+  VAR
+    result: INTEGER;
+  BEGIN
+    result := a + b;
+    RETURN result;
+  END;
 
 BEGIN
-  result := GetNumber(1);
-  writeln(result);
+  x := 15;
+  y := 27;
+  z := addition(x, y);
+  write('The result of add(15, 27) is: ', z);
+  writeln;
 END.
+
+// Expected Output: 42
