@@ -76,7 +76,7 @@ The compiler targets a custom stack-based virtual machine.
     ./my_compiler your_program.pas
     ```
     This will generate an `output.vm` file containing the assembly code.
-    There is a folder with 32 tests to try.
+    There is a folder with 33 tests to try.
 
 3.  **Execute the generated code** with the provided virtual machine:
     ```bash
