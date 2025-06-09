@@ -5,7 +5,7 @@
 
 SymbolEntry::SymbolEntry()
     : kind(SymbolKind::UNKNOWN), type(EntryTypeCategory::UNKNOWN_TYPE),
-    offset(0), // UPDATED
+    offset(0),
     functionReturnType(EntryTypeCategory::NO_TYPE), numParameters(0),
     declLine(0), declColumn(0) {
     arrayDetails.isInitialized = false;
@@ -13,7 +13,7 @@ SymbolEntry::SymbolEntry()
 
 SymbolEntry::SymbolEntry(std::string id_name, SymbolKind k, EntryTypeCategory et, int line, int col)
     : name(std::move(id_name)), kind(k), type(et),
-    offset(0), // UPDATED
+    offset(0),
     functionReturnType(EntryTypeCategory::NO_TYPE),
     numParameters(0),
     declLine(line), declColumn(col) {
@@ -22,7 +22,7 @@ SymbolEntry::SymbolEntry(std::string id_name, SymbolKind k, EntryTypeCategory et
 
 SymbolEntry::SymbolEntry(std::string id_name, SymbolKind k, EntryTypeCategory el_type, int low, int high, int line, int col)
     : name(std::move(id_name)), kind(k), type(EntryTypeCategory::ARRAY),
-    offset(0), // UPDATED
+    offset(0),
     functionReturnType(EntryTypeCategory::NO_TYPE),
     numParameters(0),
     declLine(line), declColumn(col) {
@@ -36,7 +36,7 @@ SymbolEntry::SymbolEntry(std::string func_name, EntryTypeCategory ret_type,
     const std::vector<std::pair<EntryTypeCategory, ArrayDetails>>& signature,
     int line, int col)
     : name(std::move(func_name)), kind(SymbolKind::FUNCTION), type(EntryTypeCategory::NO_TYPE),
-    offset(0), // UPDATED
+    offset(0),
     functionReturnType(ret_type),
     formalParameterSignature(signature),
     numParameters(signature.size()),
@@ -48,7 +48,7 @@ SymbolEntry::SymbolEntry(std::string proc_name,
     const std::vector<std::pair<EntryTypeCategory, ArrayDetails>>& signature,
     int line, int col)
     : name(std::move(proc_name)), kind(SymbolKind::PROCEDURE), type(EntryTypeCategory::NO_TYPE),
-    offset(0), // UPDATED
+    offset(0),
     functionReturnType(EntryTypeCategory::NO_TYPE),
     formalParameterSignature(signature),
     numParameters(signature.size()),
