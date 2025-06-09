@@ -59,30 +59,6 @@ The compiler targets a custom stack-based virtual machine.
 * **GNU Make:** For building the project.
 * **Development Environment:** MinGW64 on Windows.
 
-### How to Build
-
-1.  Ensure you have GNU Flex, GNU Bison, and a C++ compiler (like g++) installed and in your system's PATH.
-2.  Navigate to the root directory of the project in your terminal.
-3.  Run the `make` command:
-    ```bash
-    make
-    ```
-    This will produce the executable `my_compiler`.
-
-### How to Run
-
-1.  **Compile a MiniPascal source file:**
-    ```bash
-    ./my_compiler your_program.pas
-    ```
-    This will generate an `output.vm` file containing the assembly code.
-    There is a folder with 33 tests to try.
-
-3.  **Execute the generated code** with the provided virtual machine:
-    ```bash
-    ./vm.exe output.vm
-    ```
-
 ### Next Steps / Future Goals
 
 With the core language features now fully implemented, the project goals have shifted to stabilization and fixing bugs.
