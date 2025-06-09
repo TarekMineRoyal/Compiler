@@ -128,8 +128,6 @@ void CodeGenerator::visit(SubprogramDeclaration& node) {
     if (node.local_declarations) node.local_declarations->accept(*this);
     if (node.body) node.body->accept(*this);
 
-    // FINAL CORRECTED LOGIC: Only add an implicit return for procedures.
-    // Functions MUST have an explicit RETURN statement, which generates its own 'return'.
     if (dynamic_cast<ProcedureHeadNode*>(node.head)) {
         emit("return");
     }
@@ -207,7 +205,6 @@ void CodeGenerator::visit(AssignStatementNode& node) {
             SymbolEntry* entry = symbolTable->lookupSymbol(varNode->identifier->name);
             if (!entry) throw std::runtime_error("CodeGen: Symbol not found in assignment: " + varNode->identifier->name);
             if (entry->kind == SymbolKind::PARAMETER) {
-                // CORRECTED: Parameter access offset formula
                 int negative_offset = -(entry->offset + 1);
                 emit("storel", std::to_string(negative_offset));
             }
@@ -227,7 +224,6 @@ void CodeGenerator::visit(VariableNode& node) {
     SymbolEntry* entry = symbolTable->lookupSymbol(node.identifier->name);
     if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + node.identifier->name);
     if (entry->kind == SymbolKind::PARAMETER) {
-        // CORRECTED: Parameter access offset formula
         int negative_offset = -(entry->offset + 1);
         emit("pushl", std::to_string(negative_offset));
         return;
@@ -255,9 +251,23 @@ void CodeGenerator::visit(VariableNode& node) {
 
 void CodeGenerator::visit(IdExprNode& node) {
     SymbolEntry* entry = symbolTable->lookupSymbol(node.ident->name);
-    if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + node.ident->name);
+    if (!entry) {
+        throw std::runtime_error("CodeGen: Symbol not found for identifier: " + node.ident->name);
+    }
+
+    // CORRECTED: Handle parameter-less function calls
+    if (entry->kind == SymbolKind::FUNCTION) {
+        if (entry->numParameters != 0) {
+            // This should be caught by the semantic analyzer, but as a safeguard:
+            throw std::runtime_error("CodeGen: Function '" + node.ident->name + "' called without parentheses but requires arguments.");
+        }
+        emit("pushn", "1"); // Space for the return value
+        emit("pusha", node.ident->name);
+        emit("call");
+        return;
+    }
+
     if (entry->kind == SymbolKind::PARAMETER) {
-        // CORRECTED: Parameter access offset formula
         int negative_offset = -(entry->offset + 1);
         emit("pushl", std::to_string(negative_offset));
     }
@@ -409,7 +419,7 @@ EntryTypeCategory CodeGenerator::astToSymbolType(TypeNode* astTypeNode, ArrayDet
         if (atn->elementType) {
             switch (atn->elementType->category) {
             case StandardTypeNode::TYPE_INTEGER: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_INTEGER; break;
-            case StandardTypeNode::TYPE_REAL: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_REAL; break;
+            case StandardTypeNode::TYPE_REAL:    outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_REAL;    break;
             case StandardTypeNode::TYPE_BOOLEAN: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_BOOLEAN; break;
             default: outArrayDetails.elementType = EntryTypeCategory::UNKNOWN_TYPE; break;
             }

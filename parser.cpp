@@ -1697,7 +1697,7 @@ yyreduce:
 
   case 75: /* primary: id_node  */
 #line 325 "parser.y"
-           { (yyval.pExprNode) = new VariableNode((yyvsp[0].pIdentNode), nullptr, (yyvsp[0].pIdentNode)->line, (yyvsp[0].pIdentNode)->column); }
+           { (yyval.pExprNode) = new IdExprNode((yyvsp[0].pIdentNode), (yyvsp[0].pIdentNode)->line, (yyvsp[0].pIdentNode)->column); }
 #line 1702 "parser.cpp"
     break;
 

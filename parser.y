@@ -321,8 +321,8 @@ primary: id_node '[' expr ']' // Added for array access in expressions
            { $$ = new VariableNode($1, $3, $1->line, $1->column); }
          | id_node '(' expression_list ')' // Function call with ()
            { $$ = new FunctionCallExprNode($1, $3, $1->line, $1->column); }
-         | id_node // Simple identifier (variable or parameterless function)
-           { $$ = new VariableNode($1, nullptr, $1->line, $1->column); }
+         | id_node // Simple identifier (can be a var, param, or parameterless function)
+           { $$ = new IdExprNode($1, $1->line, $1->column); }
          | int_num_node
            { $$ = $1; }
          | real_num_node
