@@ -255,13 +255,11 @@ void CodeGenerator::visit(IdExprNode& node) {
         throw std::runtime_error("CodeGen: Symbol not found for identifier: " + node.ident->name);
     }
 
-    // CORRECTED: Handle parameter-less function calls
     if (entry->kind == SymbolKind::FUNCTION) {
         if (entry->numParameters != 0) {
-            // This should be caught by the semantic analyzer, but as a safeguard:
             throw std::runtime_error("CodeGen: Function '" + node.ident->name + "' called without parentheses but requires arguments.");
         }
-        emit("pushn", "1"); // Space for the return value
+        emit("pushn", "1");
         emit("pusha", node.ident->name);
         emit("call");
         return;
@@ -319,6 +317,92 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
         }
         return;
     }
+
+    // CORRECTED: 'read' and 'readln' logic now handles both IdExprNode and VariableNode
+    if (procName == "read" || procName == "readln") {
+        if (node.arguments && !node.arguments->expressions.empty()) {
+            for (ExprNode* argExpr : node.arguments->expressions) {
+
+                SymbolScope scope = SymbolScope::GLOBAL;
+                int offset = -1;
+                EntryTypeCategory arg_type = EntryTypeCategory::UNKNOWN_TYPE;
+                std::string var_name;
+                bool is_param = false;
+                int param_offset = -1;
+
+                // Determine node type and extract necessary info
+                if (auto* varNode = dynamic_cast<VariableNode*>(argExpr)) {
+                    // This case would be for array elements, e.g., read(my_array[i]).
+                    // While semantically questionable for 'read', we handle it if the AST provides it.
+                    // The simple case 'read(x)' will likely be an IdExprNode.
+                    SymbolEntry* entry = symbolTable->lookupSymbol(varNode->identifier->name);
+                    if (!entry) throw std::runtime_error("CodeGen: Symbol not found for read argument: " + varNode->identifier->name);
+
+                    if (varNode->index) { // It's an array element access
+                        emit("read");
+                        if (varNode->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) emit("atoi");
+                        else if (varNode->determinedType == EntryTypeCategory::PRIMITIVE_REAL) emit("atof");
+
+                        // Now store it
+                        if (varNode->scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
+                        else emit("pushg", std::to_string(entry->offset));
+
+                        varNode->index->accept(*this);
+                        emit("swap"); // value, base, index -> base, index, value
+                        int lowerBound = entry->arrayDetails.lowBound;
+                        emit("pushi", std::to_string(lowerBound));
+                        emit("sub"); // base, index-lowbound, value
+                        emit("storen");
+                        continue; // Go to next argument in loop
+                    }
+
+                    // It's a VariableNode but without an index (unlikely for an arg, but handle it)
+                    var_name = varNode->identifier->name;
+                    arg_type = entry->type;
+                    scope = varNode->scope;
+                    offset = entry->offset;
+                    if (entry->kind == SymbolKind::PARAMETER) {
+                        is_param = true;
+                        param_offset = -(entry->offset + 1);
+                    }
+
+                }
+                else if (auto* idNode = dynamic_cast<IdExprNode*>(argExpr)) {
+                    // This is the common case for `read(x)`
+                    SymbolEntry* entry = symbolTable->lookupSymbol(idNode->ident->name);
+                    if (!entry) throw std::runtime_error("CodeGen: Symbol not found for read argument: " + idNode->ident->name);
+                    var_name = idNode->ident->name;
+                    arg_type = entry->type;
+                    scope = idNode->scope;
+                    offset = entry->offset;
+                    if (entry->kind == SymbolKind::PARAMETER) {
+                        is_param = true;
+                        param_offset = -(entry->offset + 1);
+                    }
+                }
+                else {
+                    throw std::runtime_error("CodeGen: Argument to read is not a valid variable reference.");
+                }
+
+                // Generate code for simple variable read
+                emit("read");
+                if (arg_type == EntryTypeCategory::PRIMITIVE_INTEGER) emit("atoi");
+                else if (arg_type == EntryTypeCategory::PRIMITIVE_REAL) emit("atof");
+
+                if (is_param) {
+                    emit("storel", std::to_string(param_offset));
+                }
+                else if (scope == SymbolScope::LOCAL) {
+                    emit("storel", std::to_string(offset));
+                }
+                else {
+                    emit("storeg", std::to_string(offset));
+                }
+            }
+        }
+        return;
+    }
+
     SymbolEntry* entry = symbolTable->lookupSymbol(procName);
     if (!entry) throw std::runtime_error("CodeGen: Procedure not found: " + procName);
     if (node.arguments) {
@@ -329,6 +413,7 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
     emit("call");
     if (entry->numParameters > 0) emit("pop", std::to_string(entry->numParameters));
 }
+
 
 void CodeGenerator::visit(FunctionCallExprNode& node) {
     const std::string& funcName = node.funcName->name;
@@ -419,7 +504,7 @@ EntryTypeCategory CodeGenerator::astToSymbolType(TypeNode* astTypeNode, ArrayDet
         if (atn->elementType) {
             switch (atn->elementType->category) {
             case StandardTypeNode::TYPE_INTEGER: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_INTEGER; break;
-            case StandardTypeNode::TYPE_REAL:    outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_REAL;    break;
+            case StandardTypeNode::TYPE_REAL: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_REAL; break;
             case StandardTypeNode::TYPE_BOOLEAN: outArrayDetails.elementType = EntryTypeCategory::PRIMITIVE_BOOLEAN; break;
             default: outArrayDetails.elementType = EntryTypeCategory::UNKNOWN_TYPE; break;
             }
