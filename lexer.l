@@ -12,6 +12,65 @@
     int col = 1;
     int comment_start_lin = 0;
     int comment_start_col = 0;
+
+    // An external reference to the global error flag
+    extern bool compilation_has_error;
+
+    // A helper function to help with generating the tokens.txt file.
+    const char* token_to_string(int token, const YYSTYPE& lval) {
+        switch (token) {
+            // Keywords
+            case PROGRAM: return "PROGRAM";
+            case VAR: return "VAR";
+            case ARRAY: return "ARRAY";
+            case OF: return "OF";
+            case INTEGER_TYPE: return "INTEGER_TYPE";
+            case REAL_TYPE: return "REAL_TYPE";
+            case BOOLEAN_TYPE: return "BOOLEAN_TYPE";
+            case FUNCTION: return "FUNCTION";
+            case PROCEDURE: return "PROCEDURE";
+            case BEGIN_TOKEN: return "BEGIN_TOKEN";
+            case END_TOKEN: return "END_TOKEN";
+            case IF: return "IF";
+            case THEN: return "THEN";
+            case ELSE: return "ELSE";
+            case WHILE: return "WHILE";
+            case DO: return "DO";
+            case NOT_OP: return "NOT_OP";
+            case AND_OP: return "AND_OP";
+            case OR_OP: return "OR_OP";
+            case DIV_OP: return "DIV_OP";
+            case RETURN_KEYWORD: return "RETURN_KEYWORD";
+            case TRUE_KEYWORD: return "TRUE_KEYWORD";
+            case FALSE_KEYWORD: return "FALSE_KEYWORD";
+
+            // Literals
+            case NUM: return "NUM";
+            case REAL_LITERAL: return "REAL_LITERAL";
+            case IDENT: return "IDENT";
+            case STRING_LITERAL: return "STRING_LITERAL";
+            
+            // Operators & Punctuation
+            case ASSIGN_OP: return "ASSIGN_OP";
+            case EQ_OP: return "EQ_OP";
+            case NEQ_OP: return "NEQ_OP";
+            case LT_OP: return "LT_OP";
+            case LTE_OP: return "LTE_OP";
+            case GT_OP: return "GT_OP";
+            case GTE_OP: return "GTE_OP";
+            case DOTDOT: return "DOTDOT";
+            
+            // Single characters are their own representation
+            default:
+                if (token >= 0 && token <= 255) {
+                    static char buffer[2] = {0};
+                    buffer[0] = (char)token;
+                    return buffer;
+                }
+                return "UNKNOWN_TOKEN";
+        }
+    }
+
 %}
 
 %option caseless noyywrap nounistd never-interactive stack
@@ -130,8 +189,8 @@ ALPHA   [a-zA-Z]
 
 
     .                   {
-                          std::cerr << "Lexical Error: Unexpected character '" << *yytext
-                                    << "' at line " << lin << ", column " << col << std::endl;
+                          // Standardized error format
+                          fprintf(stderr, "Lexical Error (L:%d, C:%d): Unexpected character '%c'\n", lin, col, *yytext);
                           col += yyleng;
                         }
 }

@@ -589,10 +589,69 @@ char *yytext;
     int col = 1;
     int comment_start_lin = 0;
     int comment_start_col = 0;
-#line 592 "scanner.cpp"
+
+    // An external reference to the global error flag
+    extern bool compilation_has_error;
+
+    // A helper function to help with generating the tokens.txt file.
+    const char* token_to_string(int token, const YYSTYPE& lval) {
+        switch (token) {
+            // Keywords
+            case PROGRAM: return "PROGRAM";
+            case VAR: return "VAR";
+            case ARRAY: return "ARRAY";
+            case OF: return "OF";
+            case INTEGER_TYPE: return "INTEGER_TYPE";
+            case REAL_TYPE: return "REAL_TYPE";
+            case BOOLEAN_TYPE: return "BOOLEAN_TYPE";
+            case FUNCTION: return "FUNCTION";
+            case PROCEDURE: return "PROCEDURE";
+            case BEGIN_TOKEN: return "BEGIN_TOKEN";
+            case END_TOKEN: return "END_TOKEN";
+            case IF: return "IF";
+            case THEN: return "THEN";
+            case ELSE: return "ELSE";
+            case WHILE: return "WHILE";
+            case DO: return "DO";
+            case NOT_OP: return "NOT_OP";
+            case AND_OP: return "AND_OP";
+            case OR_OP: return "OR_OP";
+            case DIV_OP: return "DIV_OP";
+            case RETURN_KEYWORD: return "RETURN_KEYWORD";
+            case TRUE_KEYWORD: return "TRUE_KEYWORD";
+            case FALSE_KEYWORD: return "FALSE_KEYWORD";
+
+            // Literals
+            case NUM: return "NUM";
+            case REAL_LITERAL: return "REAL_LITERAL";
+            case IDENT: return "IDENT";
+            case STRING_LITERAL: return "STRING_LITERAL";
+            
+            // Operators & Punctuation
+            case ASSIGN_OP: return "ASSIGN_OP";
+            case EQ_OP: return "EQ_OP";
+            case NEQ_OP: return "NEQ_OP";
+            case LT_OP: return "LT_OP";
+            case LTE_OP: return "LTE_OP";
+            case GT_OP: return "GT_OP";
+            case GTE_OP: return "GTE_OP";
+            case DOTDOT: return "DOTDOT";
+            
+            // Single characters are their own representation
+            default:
+                if (token >= 0 && token <= 255) {
+                    static char buffer[2] = {0};
+                    buffer[0] = (char)token;
+                    return buffer;
+                }
+                return "UNKNOWN_TOKEN";
+        }
+    }
+
+#line 651 "scanner.cpp"
 #define YY_NO_UNISTD_H 1
 
-#line 595 "scanner.cpp"
+#line 654 "scanner.cpp"
 
 #define INITIAL 0
 #define ML_COMMENT 1
@@ -820,10 +879,10 @@ YY_DECL
 		}
 
 	{
-#line 23 "./lexer.l"
+#line 82 "./lexer.l"
 
 
-#line 826 "scanner.cpp"
+#line 885 "scanner.cpp"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -879,24 +938,24 @@ do_action:	/* This label is used only to access EOF actions. */
 /* Whitespace */
 case 1:
 YY_RULE_SETUP
-#line 27 "./lexer.l"
+#line 86 "./lexer.l"
 { col += yyleng; }
 	YY_BREAK
 case 2:
 /* rule 2 can match eol */
 YY_RULE_SETUP
-#line 28 "./lexer.l"
+#line 87 "./lexer.l"
 { lin++; col = 1; }
 	YY_BREAK
 /* Comments */
 case 3:
 YY_RULE_SETUP
-#line 31 "./lexer.l"
+#line 90 "./lexer.l"
 { col += yyleng; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 32 "./lexer.l"
+#line 91 "./lexer.l"
 {
                           comment_start_lin = lin;
                           comment_start_col = col;
@@ -907,7 +966,7 @@ YY_RULE_SETUP
 /* String Literals */
 case 5:
 YY_RULE_SETUP
-#line 39 "./lexer.l"
+#line 98 "./lexer.l"
 { 
                           char* s_val = (char*)malloc(yyleng - 1); 
                           if (s_val) {
@@ -925,156 +984,156 @@ YY_RULE_SETUP
 /* --- OPERATORS - Specific multi-character operators first --- */
 case 6:
 YY_RULE_SETUP
-#line 54 "./lexer.l"
+#line 113 "./lexer.l"
 { col += yyleng; return ASSIGN_OP; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 55 "./lexer.l"
+#line 114 "./lexer.l"
 { col += yyleng; return NEQ_OP; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 56 "./lexer.l"
+#line 115 "./lexer.l"
 { col += yyleng; return LTE_OP; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 57 "./lexer.l"
+#line 116 "./lexer.l"
 { col += yyleng; return GTE_OP; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 58 "./lexer.l"
+#line 117 "./lexer.l"
 { col += yyleng; return DOTDOT; }
 	YY_BREAK
 /* Keywords */
 case 11:
 YY_RULE_SETUP
-#line 61 "./lexer.l"
+#line 120 "./lexer.l"
 { col += yyleng; return PROGRAM; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 62 "./lexer.l"
+#line 121 "./lexer.l"
 { col += yyleng; return VAR; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 63 "./lexer.l"
+#line 122 "./lexer.l"
 { col += yyleng; return INTEGER_TYPE; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 64 "./lexer.l"
+#line 123 "./lexer.l"
 { col += yyleng; return REAL_TYPE; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 65 "./lexer.l"
+#line 124 "./lexer.l"
 { col += yyleng; return FUNCTION; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 66 "./lexer.l"
+#line 125 "./lexer.l"
 { col += yyleng; return PROCEDURE; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 67 "./lexer.l"
+#line 126 "./lexer.l"
 { col += yyleng; return WHILE; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 68 "./lexer.l"
+#line 127 "./lexer.l"
 { col += yyleng; return DO; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 69 "./lexer.l"
+#line 128 "./lexer.l"
 { col += yyleng; return BEGIN_TOKEN; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 70 "./lexer.l"
+#line 129 "./lexer.l"
 { col += yyleng; return END_TOKEN; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 71 "./lexer.l"
+#line 130 "./lexer.l"
 { col += yyleng; return IF; }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 72 "./lexer.l"
+#line 131 "./lexer.l"
 { col += yyleng; return THEN; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 73 "./lexer.l"
+#line 132 "./lexer.l"
 { col += yyleng; return ELSE; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 74 "./lexer.l"
+#line 133 "./lexer.l"
 { col += yyleng; return ARRAY; }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 75 "./lexer.l"
+#line 134 "./lexer.l"
 { col += yyleng; return OF; }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 76 "./lexer.l"
+#line 135 "./lexer.l"
 { col += yyleng; return DIV_OP; }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 77 "./lexer.l"
+#line 136 "./lexer.l"
 { col += yyleng; return NOT_OP; }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 78 "./lexer.l"
+#line 137 "./lexer.l"
 { col += yyleng; return OR_OP; }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 79 "./lexer.l"
+#line 138 "./lexer.l"
 { col += yyleng; return AND_OP; }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 80 "./lexer.l"
+#line 139 "./lexer.l"
 { col += yyleng; return BOOLEAN_TYPE; }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 81 "./lexer.l"
+#line 140 "./lexer.l"
 { col += yyleng; return TRUE_KEYWORD; }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 82 "./lexer.l"
+#line 141 "./lexer.l"
 { col += yyleng; return FALSE_KEYWORD; }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 83 "./lexer.l"
+#line 142 "./lexer.l"
 { col += yyleng; return RETURN_KEYWORD; }
 	YY_BREAK
 /* --- Literals --- */
 /* Real literals */
 case 34:
-#line 88 "./lexer.l"
+#line 147 "./lexer.l"
 case 35:
-#line 89 "./lexer.l"
+#line 148 "./lexer.l"
 case 36:
-#line 90 "./lexer.l"
+#line 149 "./lexer.l"
 case 37:
 YY_RULE_SETUP
-#line 90 "./lexer.l"
+#line 149 "./lexer.l"
 { /* <<< ACTION BLOCK'S OPENING BRACE IS HERE, ON THE SAME LINE */
         int token_start_col = col; // Capture start column for the AST node
         yylval.rawRealLit = new RealLit(atof(yytext), lin, token_start_col);
@@ -1085,7 +1144,7 @@ YY_RULE_SETUP
 /* Integer Literal */
 case 38:
 YY_RULE_SETUP
-#line 99 "./lexer.l"
+#line 158 "./lexer.l"
 { 
         int token_start_col = col; // Capture start column
         yylval.rawNum = new Num(atoi(yytext), lin, token_start_col);
@@ -1096,7 +1155,7 @@ YY_RULE_SETUP
 /* Identifiers - after keywords */
 case 39:
 YY_RULE_SETUP
-#line 107 "./lexer.l"
+#line 166 "./lexer.l"
 {
         int token_start_col = col; // Capture start column
         yylval.rawIdent = new Ident(std::string(yytext), lin, token_start_col);
@@ -1107,85 +1166,85 @@ YY_RULE_SETUP
 /* Single Character Operators & Punctuation */
 case 40:
 YY_RULE_SETUP
-#line 115 "./lexer.l"
+#line 174 "./lexer.l"
 { col += yyleng; return '+'; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 116 "./lexer.l"
+#line 175 "./lexer.l"
 { col += yyleng; return '-'; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 117 "./lexer.l"
+#line 176 "./lexer.l"
 { col += yyleng; return '*'; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 118 "./lexer.l"
+#line 177 "./lexer.l"
 { col += yyleng; return '/'; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 119 "./lexer.l"
+#line 178 "./lexer.l"
 { col += yyleng; return EQ_OP; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 120 "./lexer.l"
+#line 179 "./lexer.l"
 { col += yyleng; return LT_OP; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 121 "./lexer.l"
+#line 180 "./lexer.l"
 { col += yyleng; return GT_OP; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 122 "./lexer.l"
+#line 181 "./lexer.l"
 { col += yyleng; return '('; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 123 "./lexer.l"
+#line 182 "./lexer.l"
 { col += yyleng; return ')'; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 124 "./lexer.l"
+#line 183 "./lexer.l"
 { col += yyleng; return '['; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 125 "./lexer.l"
+#line 184 "./lexer.l"
 { col += yyleng; return ']'; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 126 "./lexer.l"
+#line 185 "./lexer.l"
 { col += yyleng; return ':'; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 127 "./lexer.l"
+#line 186 "./lexer.l"
 { col += yyleng; return ';'; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 128 "./lexer.l"
+#line 187 "./lexer.l"
 { col += yyleng; return ','; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 129 "./lexer.l"
+#line 188 "./lexer.l"
 { col += yyleng; return '.'; } /* Single dot, AFTER DOTDOT */
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 132 "./lexer.l"
+#line 191 "./lexer.l"
 {
-                          std::cerr << "Lexical Error: Unexpected character '" << *yytext
-                                    << "' at line " << lin << ", column " << col << std::endl;
+                          // Standardized error format
+                          fprintf(stderr, "Lexical Error (L:%d, C:%d): Unexpected character '%c'\n", lin, col, *yytext);
                           col += yyleng;
                         }
 	YY_BREAK
@@ -1193,30 +1252,30 @@ YY_RULE_SETUP
 
 case 56:
 YY_RULE_SETUP
-#line 140 "./lexer.l"
+#line 199 "./lexer.l"
 { col += yyleng; BEGIN(INITIAL); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 141 "./lexer.l"
+#line 200 "./lexer.l"
 { col += yyleng; }
 	YY_BREAK
 case 58:
 /* rule 58 can match eol */
 YY_RULE_SETUP
-#line 142 "./lexer.l"
+#line 201 "./lexer.l"
 { lin++; col = 1; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 143 "./lexer.l"
+#line 202 "./lexer.l"
 {
                           std::cerr << "Warning: Nested comment '{' at L" << lin << ", C" << col << std::endl;
                           col += yyleng;
                         }
 	YY_BREAK
 case YY_STATE_EOF(ML_COMMENT):
-#line 147 "./lexer.l"
+#line 206 "./lexer.l"
 {
                           std::cerr << "Lexical Error: Unterminated comment from L" << comment_start_lin << ", C" << comment_start_col << std::endl;
                           BEGIN(INITIAL);
@@ -1226,10 +1285,10 @@ case YY_STATE_EOF(ML_COMMENT):
 
 case 60:
 YY_RULE_SETUP
-#line 154 "./lexer.l"
+#line 213 "./lexer.l"
 ECHO;
 	YY_BREAK
-#line 1232 "scanner.cpp"
+#line 1291 "scanner.cpp"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2281,5 +2340,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 154 "./lexer.l"
+#line 213 "./lexer.l"
 

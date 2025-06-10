@@ -12,6 +12,9 @@ extern int yydebug;
 extern int lin;
 extern int col;
 
+// An external reference to the global error flag
+extern bool compilation_has_error;
+
 ProgramNode *root_ast_node;
 %}
 
@@ -339,7 +342,9 @@ primary: id_node '[' expr ']' // Added for array access in expressions
 
 %%
 
+// Standardized yyerror function
 int yyerror(const char* s) {
-    std::cout << "SYNTAX ERROR: " << s << " at line: " << lin << ", Column: " << col << std::endl;
+    compilation_has_error = true; 
+    fprintf(stderr, "Syntax Error (L:%d, C:%d): %s\n", lin, col, s);
     return 0;
 }
