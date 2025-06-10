@@ -45,3 +45,4 @@ Thumbs.db
 
 # Ignore the .vs directory (Visual Studio IDE files)
 .vs/
+/output
