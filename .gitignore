@@ -45,4 +45,14 @@ Thumbs.db
 
 # Ignore the .vs directory (Visual Studio IDE files)
 .vs/
+/MiniPascal.sln
+/MiniPascal.vcxproj
+/MiniPascal.vcxproj.filters
+/MiniPascal.vcxproj.user
+
+# Auto generated files
 /output
+/parser.cpp
+/scanner.cpp
+/parser.h
+/parser.output
