@@ -2,7 +2,8 @@
 #define CODEGENERATOR_H
 
 #include "ast.h"
-#include "semantic_analyzer.h" 
+#include "semantic_analyzer.h"
+#include "symbol_table.h" 
 #include <string>
 #include <vector>
 #include <sstream>
@@ -21,7 +22,6 @@ private:
     int local_offset = 0;
     int param_offset = 0;
 
-    // ADDED: A member to hold the single exit label for the current subprogram
     std::string currentSubprogramExitLabel;
 
     // Helper Methods

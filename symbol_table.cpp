@@ -1,7 +1,7 @@
 #include "symbol_table.h"
-#include <sstream> 
-#include <iostream> 
-#include <iterator> 
+#include <sstream>
+#include <iostream>
+#include <iterator>
 
 SymbolEntry::SymbolEntry()
     : kind(SymbolKind::UNKNOWN), type(EntryTypeCategory::UNKNOWN_TYPE),
@@ -56,7 +56,6 @@ SymbolEntry::SymbolEntry(std::string proc_name,
     arrayDetails.isInitialized = false;
 }
 
-
 std::string SymbolEntry::toString() const {
     std::stringstream ss;
     ss << "'" << name << "' (" << symbolKindToString(kind) << ")";
@@ -92,6 +91,35 @@ std::string SymbolEntry::toString() const {
     }
     ss << " (L:" << declLine << ", C:" << declColumn << ")";
     return ss.str();
+}
+
+std::string SymbolEntry::getMangledName() const {
+    if (kind != SymbolKind::FUNCTION && kind != SymbolKind::PROCEDURE) {
+        return name; // Return original name if not a subprogram
+    }
+
+    std::stringstream mangledName;
+
+    if (kind == SymbolKind::FUNCTION) {
+        mangledName << "f_";
+    }
+    else { // PROCEDURE
+        mangledName << "p_";
+    }
+
+    mangledName << name;
+
+    for (const auto& param : formalParameterSignature) {
+        mangledName << "_";
+        switch (param.first) {
+        case EntryTypeCategory::PRIMITIVE_INTEGER: mangledName << "i"; break;
+        case EntryTypeCategory::PRIMITIVE_REAL:    mangledName << "r"; break;
+        case EntryTypeCategory::PRIMITIVE_BOOLEAN: mangledName << "b"; break;
+        case EntryTypeCategory::ARRAY:             mangledName << "a"; break;
+        default:                                   mangledName << "u"; break;
+        }
+    }
+    return mangledName.str();
 }
 
 SymbolTable::SymbolTable() : currentLevel(-1) {
@@ -136,19 +164,18 @@ bool SymbolTable::addSymbol(const SymbolEntry& entry) {
 
 SymbolEntry* SymbolTable::lookupSymbol(const std::string& name) {
     if (scopeStack.empty()) return nullptr;
-    // Iterate from current scope (back of list) to global scope (front)
-    for (auto list_iter = std::prev(scopeStack.end()); ; /* decrement inside */) {
-        Scope& scope = *list_iter; // Non-const reference
+    for (auto list_iter = std::prev(scopeStack.end()); ; ) {
+        Scope& scope = *list_iter;
         auto foundEntry = scope.find(name);
         if (foundEntry != scope.end()) {
             return &(foundEntry->second);
         }
-        if (list_iter == scopeStack.begin()) { // Checked the global scope
+        if (list_iter == scopeStack.begin()) {
             break;
         }
-        --list_iter; // Move to previous scope
+        --list_iter;
     }
-    return nullptr; // Not found in any scope
+    return nullptr;
 }
 
 SymbolEntry* SymbolTable::lookupSymbolInCurrentScope(const std::string& name) {
