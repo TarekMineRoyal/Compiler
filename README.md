@@ -19,9 +19,6 @@ The compiler is now **functionally complete**. All major phases have been implem
 
 **All major language features have been implemented and tested, including full subprogram support (procedures and functions with overloading) and built-in I/O.**
 
-**Known Issues:**
-* There is a known bug causing a "VM error: Illegal Operand" when accessing local arrays declared inside a procedure or function. All other features, including global arrays and local simple variables, are working correctly.
-
 ### Key Features of MiniPascal Supported
 
 The compiler currently supports the following MiniPascal language features:
@@ -66,13 +63,6 @@ The compiler targets a custom stack-based virtual machine.
 * **GNU Bison:** For syntax analysis (parser generation).
 * **GNU Make:** For building the project.
 * **Development Environment:** MinGW64 on Windows.
-
-### Next Steps / Future Goals
-
-With the core language features now fully implemented, the project goals have shifted to stabilization and fixing bugs.
-
-* **Future Goal:**
-    * Fix the outstanding bug related to the allocation and use of **local arrays** inside subprograms.
 
 ---
 Project Lead: Tarek
