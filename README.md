@@ -1,5 +1,12 @@
 # MiniPascal Compiler
 
+![C++](https://img.shields.io/badge/C++-17-blue.svg)
+![Flex](https://img.shields.io/badge/Tool-Flex-orange.svg)
+![Bison](https://img.shields.io/badge/Tool-Bison-purple.svg)
+![Build](https://img.shields.io/badge/Build-Make-green.svg)
+![Compiler](https://img.shields.io/badge/Compiler-MinGW64-red.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 A compiler for MiniPascal, a custom, simplified Pascal-like programming language. Implemented from scratch in C++ (std=c++17) using Flex for lexical analysis and Bison for syntax analysis. This project implements all the core phases of compiler design, from tokenizing to generating executable assembly for a custom stack-based virtual machine.
 
 ### Current Status (as of June 18, 2025)
