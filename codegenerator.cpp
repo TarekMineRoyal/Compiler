@@ -64,23 +64,22 @@ void CodeGenerator::visit(Declarations& node) {
 }
 
 void CodeGenerator::visit(VarDecl& node) {
-    // This logic handles local variable allocation and all array allocations
-    if (!symbolTable->isGlobalScope()) {
-        ArrayDetails ad;
-        EntryTypeCategory var_type = astToSymbolType(node.type, ad);
-        int varCount = 0;
-        for (auto* ident : node.identifiers->identifiers) {
-            if (var_type == EntryTypeCategory::ARRAY) {
-                // Array space is allocated separately below
-            }
-            else {
-                varCount++;
-            }
+    ArrayDetails ad;
+    EntryTypeCategory var_type = astToSymbolType(node.type, ad);
+
+    for (auto* ident : node.identifiers->identifiers) {
+        SymbolEntry entry(ident->name, SymbolKind::VARIABLE, var_type, ident->line, ident->column);
+
+        entry.offset = local_offset++;
+
+        if (var_type == EntryTypeCategory::ARRAY) {
+            entry.arrayDetails = ad;
         }
-        if (varCount > 0) {
-            emit("pushn", std::to_string(varCount));
-        }
+        symbolTable->addSymbol(entry);
     }
+
+    // This existing logic for handling array heap-allocation will now work
+    // because the lookupSymbol call below will succeed.
     if (auto* arrayType = dynamic_cast<ArrayTypeNode*>(node.type)) {
         int low = arrayType->startIndex->value;
         int high = arrayType->endIndex->value;
@@ -89,13 +88,19 @@ void CodeGenerator::visit(VarDecl& node) {
             throw std::runtime_error("Array size must be positive.");
         }
         for (auto* ident : node.identifiers->identifiers) {
+            // This lookup will now find the symbol we just added above.
             SymbolEntry* entry = symbolTable->lookupSymbol(ident->name);
-            if (!entry) throw std::runtime_error("CodeGen: Symbol not found during array allocation: " + ident->name);
+            if (!entry) {
+                // This should not happen anymore, but keep for safety.
+                throw std::runtime_error("CodeGen: Symbol not found during array allocation: " + ident->name);
+            }
             emit("alloc", std::to_string(size));
+
             if (symbolTable->isGlobalScope()) {
                 emit("storeg", std::to_string(entry->offset));
             }
             else {
+                // This will now correctly store the heap address in the pre-allocated stack slot.
                 emit("storel", std::to_string(entry->offset));
             }
         }
@@ -161,6 +166,20 @@ void CodeGenerator::visit(SubprogramDeclaration& node) {
     symbolTable->enterScope();
     local_offset = 0;
     param_offset = 0;
+
+    int totalLocalVars = 0;
+    if (node.local_declarations) {
+        for (auto* decl : node.local_declarations->var_decl_items) {
+            if (decl && decl->identifiers) {
+                totalLocalVars += decl->identifiers->identifiers.size();
+            }
+        }
+    }
+
+    // Emit a single PUSHN to allocate the entire stack frame for locals.
+    if (totalLocalVars > 0) {
+        emit("pushn", std::to_string(totalLocalVars));
+    }
 
     if (node.head->arguments) node.head->arguments->accept(*this);
     if (node.local_declarations) node.local_declarations->accept(*this);
