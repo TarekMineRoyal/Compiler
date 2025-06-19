@@ -45,19 +45,19 @@ void CodeGenerator::visit(ProgramNode& node) {
 }
 
 void CodeGenerator::visit(Declarations& node) {
-    // This logic handles global variable allocation
-    int varCount = 0;
     if (symbolTable->isGlobalScope()) {
-        if (!node.var_decl_items.empty()) {
-            for (auto* decl : node.var_decl_items) {
-                if (dynamic_cast<ArrayTypeNode*>(decl->type)) continue;
-                varCount += decl->identifiers->identifiers.size();
+        int simpleVarCount = 0;
+        for (auto* decl : node.var_decl_items) {
+            if (dynamic_cast<ArrayTypeNode*>(decl->type)) {
+                continue;
             }
-            if (varCount > 0) {
-                emit("pushn", std::to_string(varCount));
-            }
+            simpleVarCount += decl->identifiers->identifiers.size();
+        }
+        if (simpleVarCount > 0) {
+            emit("pushn", std::to_string(simpleVarCount));
         }
     }
+
     for (auto* varDecl : node.var_decl_items) {
         varDecl->accept(*this);
     }
@@ -230,39 +230,65 @@ void CodeGenerator::visit(StatementList& node) {
 
 void CodeGenerator::visit(AssignStatementNode& node) {
     if (auto* varNode = dynamic_cast<VariableNode*>(node.variable)) {
-        if (varNode->index) {
+        if (varNode->index) { // Assignment to an array element
             SymbolEntry* arrayEntry = symbolTable->lookupSymbol(varNode->identifier->name);
-            if (!arrayEntry) throw std::runtime_error("CodeGen: Array symbol not found: " + varNode->identifier->name);
+            if (!arrayEntry) {
+                throw std::runtime_error("CodeGen: Array symbol not found: " + varNode->identifier->name);
+            }
             int lowerBound = arrayEntry->arrayDetails.lowBound;
 
-            if (varNode->scope == SymbolScope::LOCAL) emit("pushl", std::to_string(varNode->offset));
-            else emit("pushg", std::to_string(varNode->offset));
+            // --- MODIFIED LOGIC STARTS HERE ---
+            // The special case for literal indices has been removed.
+            // This single, unified logic now handles all array assignments.
 
-            if (auto* index_lit = dynamic_cast<IntNumNode*>(varNode->index)) {
-                node.expression->accept(*this);
-                emit("store", std::to_string(index_lit->value - lowerBound));
+            // 1. Push the base address of the array (global or local).
+            if (varNode->scope == SymbolScope::LOCAL) {
+                emit("pushl", std::to_string(varNode->offset));
             }
             else {
-                varNode->index->accept(*this);
+                emit("pushg", std::to_string(varNode->offset));
+            }
+
+            // 2. Evaluate the index expression and push its value onto the stack.
+            //    This works for both literals (e.g., [5]) and variables (e.g., [i]).
+            varNode->index->accept(*this);
+
+            // 3. Subtract the array's lower bound to get the correct offset from the base address.
+            if (lowerBound != 0) {
                 emit("pushi", std::to_string(lowerBound));
                 emit("sub");
-                node.expression->accept(*this);
-                emit("storen");
             }
+
+            // 4. Evaluate the right-hand side expression and push its value.
+            node.expression->accept(*this);
+            if (varNode->determinedType == EntryTypeCategory::PRIMITIVE_REAL && node.expression->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+                emit("itof"); // Handle type promotion if necessary
+            }
+
+            // 5. Use 'storen', which takes address, index, and value from the stack.
+            emit("storen");
+
+            // --- MODIFIED LOGIC ENDS HERE ---
+
         }
-        else {
+        else { // Assignment to a simple variable (this part remains unchanged)
             node.expression->accept(*this);
             if (varNode->determinedType == EntryTypeCategory::PRIMITIVE_REAL && node.expression->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
                 emit("itof");
             }
             SymbolEntry* entry = symbolTable->lookupSymbol(varNode->identifier->name);
             if (!entry) throw std::runtime_error("CodeGen: Symbol not found in assignment: " + varNode->identifier->name);
+
             if (entry->kind == SymbolKind::PARAMETER) {
                 emit("storel", std::to_string(-(entry->offset + 1)));
             }
             else {
-                if (varNode->scope == SymbolScope::LOCAL) emit("storel", std::to_string(entry->offset));
-                else emit("storeg", std::to_string(entry->offset));
+                if (varNode->scope == SymbolScope::LOCAL) {
+                    emit("storel", std::to_string(entry->offset));
+                }
+                else {
+                    emit("storeg", std::to_string(entry->offset));
+                }
             }
         }
     }
@@ -270,30 +296,56 @@ void CodeGenerator::visit(AssignStatementNode& node) {
 
 void CodeGenerator::visit(VariableNode& node) {
     SymbolEntry* entry = symbolTable->lookupSymbol(node.identifier->name);
-    if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + node.identifier->name);
+    if (!entry) {
+        throw std::runtime_error("CodeGen: Symbol not found: " + node.identifier->name);
+    }
+
+    // This part for parameter access remains the same
     if (entry->kind == SymbolKind::PARAMETER) {
         emit("pushl", std::to_string(-(entry->offset + 1)));
         return;
     }
-    if (node.index) {
-        if (!entry->arrayDetails.isInitialized) throw std::runtime_error("CodeGen: Array details not found for " + node.identifier->name);
-        int lowerBound = entry->arrayDetails.lowBound;
-        if (node.scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
-        else emit("pushg", std::to_string(entry->offset));
 
-        if (auto* index_lit = dynamic_cast<IntNumNode*>(node.index)) {
-            emit("load", std::to_string(index_lit->value - lowerBound));
+    if (node.index) { // This is for reading from an array element
+        if (!entry->arrayDetails.isInitialized) {
+            throw std::runtime_error("CodeGen: Array details not found for " + node.identifier->name);
+        }
+        int lowerBound = entry->arrayDetails.lowBound;
+
+        // --- MODIFIED LOGIC STARTS HERE ---
+        // The special case for literal indices is removed.
+        // This unified logic now handles all array reads.
+
+        // 1. Push the base address of the array.
+        if (node.scope == SymbolScope::LOCAL) {
+            emit("pushl", std::to_string(entry->offset));
         }
         else {
-            node.index->accept(*this);
+            emit("pushg", std::to_string(entry->offset));
+        }
+
+        // 2. Evaluate the index expression and push its value onto the stack.
+        node.index->accept(*this);
+
+        // 3. Subtract the array's lower bound to get the correct offset.
+        if (lowerBound != 0) {
             emit("pushi", std::to_string(lowerBound));
             emit("sub");
-            emit("loadn");
         }
+
+        // 4. Use 'loadn', which takes the address and calculated index from the stack.
+        emit("loadn");
+
+        // --- MODIFIED LOGIC ENDS HERE ---
+
     }
-    else {
-        if (node.scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
-        else emit("pushg", std::to_string(entry->offset));
+    else { // Reading from a simple variable (this part remains unchanged)
+        if (node.scope == SymbolScope::LOCAL) {
+            emit("pushl", std::to_string(entry->offset));
+        }
+        else {
+            emit("pushg", std::to_string(entry->offset));
+        }
     }
 }
 
@@ -360,9 +412,68 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
         }
         return;
     }
+    // In codegenerator.cpp, inside CodeGenerator::visit(ProcedureCallStatementNode& node)
+
+    // In codegenerator.cpp, inside CodeGenerator::visit(ProcedureCallStatementNode& node)
+
     if (procName == "read" || procName == "readln") {
-        // ... (read/readln logic is complex and remains unchanged for now)
-        return;
+        if (node.arguments && !node.arguments->expressions.empty()) {
+            for (auto* arg : node.arguments->expressions) {
+                // Step 1: Emit VM code to read input from the user and convert it.
+                // The result (an integer or real) is left on top of the stack.
+                emit("read");
+                if (arg->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+                    emit("atoi");
+                }
+                else if (arg->determinedType == EntryTypeCategory::PRIMITIVE_REAL) {
+                    emit("atof");
+                }
+
+                // Step 2: Determine where to store the converted value from the stack.
+                // Check if the argument is an array access (VariableNode with an index).
+                if (auto* varNode = dynamic_cast<VariableNode*>(arg)) {
+                    SymbolEntry* entry = symbolTable->lookupSymbol(varNode->identifier->name);
+                    if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + varNode->identifier->name);
+
+                    if (varNode->index) {
+                        // Argument is an array element, e.g., read(myArray[i])
+                        if (varNode->scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
+                        else emit("pushg", std::to_string(entry->offset));
+                        emit("swap");
+                        varNode->index->accept(*this);
+                        emit("pushi", std::to_string(entry->arrayDetails.lowBound));
+                        emit("sub");
+                        emit("storen");
+                    }
+                    else {
+                        // Argument is a simple variable that was parsed as a VariableNode.
+                        if (entry->kind == SymbolKind::PARAMETER) emit("storel", std::to_string(-(entry->offset + 1)));
+                        else if (varNode->scope == SymbolScope::LOCAL) emit("storel", std::to_string(entry->offset));
+                        else emit("storeg", std::to_string(entry->offset));
+                    }
+                }
+                else if (auto* idNode = dynamic_cast<IdExprNode*>(arg)) {
+                    // Argument is a simple variable, e.g., read(input_val)
+                    SymbolEntry* entry = symbolTable->lookupSymbol(idNode->ident->name);
+                    if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + idNode->ident->name);
+
+                    if (entry->kind == SymbolKind::PARAMETER) {
+                        emit("storel", std::to_string(-(entry->offset + 1)));
+                    }
+                    else if (idNode->scope == SymbolScope::LOCAL) {
+                        emit("storel", std::to_string(entry->offset));
+                    }
+                    else {
+                        emit("storeg", std::to_string(entry->offset));
+                    }
+                }
+                else {
+                    // This case should not be reached if semantic analysis passed.
+                    throw std::runtime_error("CodeGen Error: Argument to 'read' must be a variable.");
+                }
+            }
+        }
+        return; // Finished handling read/readln
     }
 
     if (!node.resolved_entry) {

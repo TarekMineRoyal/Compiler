@@ -4,21 +4,18 @@
 PROGRAM Test31;
 PROCEDURE ProcC(val: INTEGER);
 BEGIN
-  write('C received: ');
-  writeln(val);
+  write('C received: ', val);
 END;
 
 PROCEDURE ProcB(val: INTEGER);
 BEGIN
-  write('B received: ');
-  writeln(val);
+  write('B received: ', val);
   ProcC(val * 2);
 END;
 
 PROCEDURE ProcA(val: INTEGER);
 BEGIN
-  write('A received: ');
-  writeln(val);
+  write('A received: ', val);
   ProcB(val + 5);
 END;
 

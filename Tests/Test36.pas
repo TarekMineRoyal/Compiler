@@ -37,5 +37,5 @@ END.
 Calling Process(10) returned:
 20
 Calling Process(5.5) returned:
-11.0
+11.
 }

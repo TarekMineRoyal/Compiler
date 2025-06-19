@@ -2,7 +2,7 @@ PROGRAM FullTest;
 VAR
   x, y, z: INTEGER;
   
-FUNCTION addition(a: INTEGER; b: INTEGER): INTEGER;
+FUNCTION add(a: INTEGER; b: INTEGER): INTEGER;
   VAR
     result: INTEGER;
   BEGIN
@@ -13,9 +13,11 @@ FUNCTION addition(a: INTEGER; b: INTEGER): INTEGER;
 BEGIN
   x := 15;
   y := 27;
-  z := addition(x, y);
+  z := add(x, y);
   write('The result of add(15, 27) is: ', z);
   writeln;
 END.
 
-// Expected Output: 42
+// Expected Output:
+// The result of add(15, 27) is:
+// 42
