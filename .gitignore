@@ -56,3 +56,4 @@ Thumbs.db
 /scanner.cpp
 /parser.h
 /parser.output
+/run_tests.sh
