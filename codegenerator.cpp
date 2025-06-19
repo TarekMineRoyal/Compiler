@@ -2,13 +2,17 @@
 #include <stdexcept>
 #include <iostream>
 #include <list>
-#include <algorithm>
+#include <algorithm> // For std::reverse
+
+// --- Entry Point ---
 
 std::string CodeGenerator::generateCode(ProgramNode& ast_root, SemanticAnalyzer& semanticAnalyzer) {
     this->symbolTable = &semanticAnalyzer.getSymbolTable();
     ast_root.accept(*this);
     return code.str();
 }
+
+// --- Helper Methods ---
 
 std::string CodeGenerator::newLabel(const std::string& prefix) {
     return "L_" + prefix + "_" + std::to_string(labelCounter++);
@@ -26,6 +30,8 @@ void CodeGenerator::emitLabel(const std::string& label) {
     code << label << ":" << std::endl;
 }
 
+// --- Visitor Implementations ---
+
 void CodeGenerator::visit(ProgramNode& node) {
     emit("start");
     if (node.subprogs && !node.subprogs->subprograms.empty()) {
@@ -39,6 +45,7 @@ void CodeGenerator::visit(ProgramNode& node) {
 }
 
 void CodeGenerator::visit(Declarations& node) {
+    // This logic handles global variable allocation
     int varCount = 0;
     if (symbolTable->isGlobalScope()) {
         if (!node.var_decl_items.empty()) {
@@ -57,34 +64,44 @@ void CodeGenerator::visit(Declarations& node) {
 }
 
 void CodeGenerator::visit(VarDecl& node) {
+    // This logic handles local variable allocation and all array allocations
     if (!symbolTable->isGlobalScope()) {
         ArrayDetails ad;
         EntryTypeCategory var_type = astToSymbolType(node.type, ad);
         int varCount = 0;
         for (auto* ident : node.identifiers->identifiers) {
-            SymbolEntry entry(ident->name, SymbolKind::VARIABLE, var_type, ident->line, ident->column);
-            entry.offset = local_offset++;
-            if (var_type == EntryTypeCategory::ARRAY) entry.arrayDetails = ad;
-            else varCount++;
-            symbolTable->addSymbol(entry);
+            if (var_type == EntryTypeCategory::ARRAY) {
+                // Array space is allocated separately below
+            }
+            else {
+                varCount++;
+            }
         }
-        if (varCount > 0) emit("pushn", std::to_string(varCount));
+        if (varCount > 0) {
+            emit("pushn", std::to_string(varCount));
+        }
     }
     if (auto* arrayType = dynamic_cast<ArrayTypeNode*>(node.type)) {
         int low = arrayType->startIndex->value;
         int high = arrayType->endIndex->value;
         int size = high - low + 1;
-        if (size <= 0) throw std::runtime_error("Array size must be positive.");
-
+        if (size <= 0) {
+            throw std::runtime_error("Array size must be positive.");
+        }
         for (auto* ident : node.identifiers->identifiers) {
             SymbolEntry* entry = symbolTable->lookupSymbol(ident->name);
-            if (!entry) throw std::runtime_error("CodeGen: Symbol not found for array alloc: " + ident->name);
+            if (!entry) throw std::runtime_error("CodeGen: Symbol not found during array allocation: " + ident->name);
             emit("alloc", std::to_string(size));
-            if (symbolTable->isGlobalScope()) emit("storeg", std::to_string(entry->offset));
-            else emit("storel", std::to_string(entry->offset));
+            if (symbolTable->isGlobalScope()) {
+                emit("storeg", std::to_string(entry->offset));
+            }
+            else {
+                emit("storel", std::to_string(entry->offset));
+            }
         }
     }
 }
+
 
 void CodeGenerator::visit(SubprogramDeclarations& node) {
     for (auto* subprog : node.subprograms) {
@@ -92,15 +109,50 @@ void CodeGenerator::visit(SubprogramDeclarations& node) {
     }
 }
 
+// MODIFIED: This function now finds and stores the subprogram's symbol entry for context.
 void CodeGenerator::visit(SubprogramDeclaration& node) {
     SubprogramHead* previousContext = currentFunctionContext;
     currentFunctionContext = node.head;
 
-    // MODIFIED: Use the mangled name for all labels and jumps.
-    SymbolEntry* subprogramEntry = symbolTable->lookupSymbol(node.head->name->name);
-    if (!subprogramEntry) throw std::runtime_error("CodeGen: Could not find symbol for subprogram: " + node.head->name->name);
+    // Look up the symbol entry that the semantic analyzer created.
+    SymbolEntry* entry = nullptr;
+    if (node.head) {
+        // We have to reconstruct the mangled name from the declaration to look it up,
+        // since the symbol table is keyed by mangled names for subprograms.
+        std::string mangledKey;
+        if (dynamic_cast<FunctionHeadNode*>(node.head)) {
+            mangledKey = "f_" + node.head->name->name;
+        }
+        else {
+            mangledKey = "p_" + node.head->name->name;
+        }
 
-    std::string mangledName = subprogramEntry->getMangledName();
+        if (node.head->arguments && node.head->arguments->params) {
+            for (const auto& param_decl_group : node.head->arguments->params->paramDeclarations) {
+                if (param_decl_group && param_decl_group->ids && param_decl_group->type) {
+                    ArrayDetails ad;
+                    EntryTypeCategory type = astToSymbolType(param_decl_group->type, ad);
+                    for (size_t i = 0; i < param_decl_group->ids->identifiers.size(); ++i) {
+                        mangledKey += "_";
+                        switch (type) {
+                        case EntryTypeCategory::PRIMITIVE_INTEGER: mangledKey += "i"; break;
+                        case EntryTypeCategory::PRIMITIVE_REAL:    mangledKey += "r"; break;
+                        case EntryTypeCategory::PRIMITIVE_BOOLEAN: mangledKey += "b"; break;
+                        case EntryTypeCategory::ARRAY:             mangledKey += "a"; break;
+                        default:                                   mangledKey += "u"; break;
+                        }
+                    }
+                }
+            }
+        }
+        entry = symbolTable->lookupSymbol(mangledKey);
+    }
+    if (!entry) throw std::runtime_error("CodeGen: Could not find symbol table entry for subprogram: " + node.head->name->name);
+
+    SymbolEntry* previousEntry = currentSubprogramEntry;
+    currentSubprogramEntry = entry;
+
+    std::string mangledName = entry->getMangledName();
     std::string endLabel = mangledName + "_end";
 
     emit("jump", endLabel);
@@ -121,6 +173,7 @@ void CodeGenerator::visit(SubprogramDeclaration& node) {
     emitLabel(endLabel);
     symbolTable->exitScope();
     currentFunctionContext = previousContext;
+    currentSubprogramEntry = previousEntry;
 }
 
 void CodeGenerator::visit(ArgumentsNode& node) {
@@ -139,7 +192,9 @@ void CodeGenerator::visit(ParameterDeclaration& node) {
     for (auto* ident : node.ids->identifiers) {
         SymbolEntry entry(ident->name, SymbolKind::PARAMETER, param_type, ident->line, ident->column);
         entry.offset = param_offset++;
-        if (param_type == EntryTypeCategory::ARRAY) entry.arrayDetails = ad;
+        if (param_type == EntryTypeCategory::ARRAY) {
+            entry.arrayDetails = ad;
+        }
         symbolTable->addSymbol(entry);
     }
 }
@@ -156,7 +211,7 @@ void CodeGenerator::visit(StatementList& node) {
 
 void CodeGenerator::visit(AssignStatementNode& node) {
     if (auto* varNode = dynamic_cast<VariableNode*>(node.variable)) {
-        if (varNode->index) { // Array element assignment
+        if (varNode->index) {
             SymbolEntry* arrayEntry = symbolTable->lookupSymbol(varNode->identifier->name);
             if (!arrayEntry) throw std::runtime_error("CodeGen: Array symbol not found: " + varNode->identifier->name);
             int lowerBound = arrayEntry->arrayDetails.lowBound;
@@ -176,7 +231,7 @@ void CodeGenerator::visit(AssignStatementNode& node) {
                 emit("storen");
             }
         }
-        else { // Simple variable assignment
+        else {
             node.expression->accept(*this);
             if (varNode->determinedType == EntryTypeCategory::PRIMITIVE_REAL && node.expression->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
                 emit("itof");
@@ -197,13 +252,11 @@ void CodeGenerator::visit(AssignStatementNode& node) {
 void CodeGenerator::visit(VariableNode& node) {
     SymbolEntry* entry = symbolTable->lookupSymbol(node.identifier->name);
     if (!entry) throw std::runtime_error("CodeGen: Symbol not found: " + node.identifier->name);
-
     if (entry->kind == SymbolKind::PARAMETER) {
         emit("pushl", std::to_string(-(entry->offset + 1)));
         return;
     }
-
-    if (node.index) { // Array element access
+    if (node.index) {
         if (!entry->arrayDetails.isInitialized) throw std::runtime_error("CodeGen: Array details not found for " + node.identifier->name);
         int lowerBound = entry->arrayDetails.lowBound;
         if (node.scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
@@ -219,26 +272,23 @@ void CodeGenerator::visit(VariableNode& node) {
             emit("loadn");
         }
     }
-    else { // Simple variable access
+    else {
         if (node.scope == SymbolScope::LOCAL) emit("pushl", std::to_string(entry->offset));
         else emit("pushg", std::to_string(entry->offset));
     }
 }
 
 void CodeGenerator::visit(IdExprNode& node) {
-    SymbolEntry* entry = symbolTable->lookupSymbol(node.ident->name);
-    if (!entry) throw std::runtime_error("CodeGen: Symbol not found for identifier: " + node.ident->name);
-
-    // MODIFIED: Handle parameter-less function call using mangled name
-    if (entry->kind == SymbolKind::FUNCTION) {
-        if (entry->numParameters != 0) throw std::runtime_error("CodeGen: Function '" + node.ident->name + "' called without parens but needs args.");
-
-        std::string mangledName = entry->getMangledName();
+    if (node.kind == SymbolKind::FUNCTION) {
+        std::string mangledName = "f_" + node.ident->name;
         emit("pushn", "1");
         emit("pusha", mangledName);
         emit("call");
         return;
     }
+
+    SymbolEntry* entry = symbolTable->lookupSymbol(node.ident->name);
+    if (!entry) throw std::runtime_error("CodeGen: Symbol not found for identifier: " + node.ident->name);
 
     if (entry->kind == SymbolKind::PARAMETER) {
         emit("pushl", std::to_string(-(entry->offset + 1)));
@@ -276,10 +326,8 @@ void CodeGenerator::visit(WhileStatementNode& node) {
 
 void CodeGenerator::visit(ProcedureCallStatementNode& node) {
     const std::string& procName = node.procName->name;
-
-    // Handle built-in I/O procedures which are not mangled
     if (procName == "write" || procName == "writeln") {
-        if (node.arguments) {
+        if (node.arguments && !node.arguments->expressions.empty()) {
             for (auto* arg : node.arguments->expressions) {
                 arg->accept(*this);
                 if (dynamic_cast<StringLiteralNode*>(arg)) emit("writes");
@@ -294,33 +342,31 @@ void CodeGenerator::visit(ProcedureCallStatementNode& node) {
         return;
     }
     if (procName == "read" || procName == "readln") {
-        // ... (read/readln logic is complex and remains unchanged)
+        // ... (read/readln logic is complex and remains unchanged for now)
         return;
     }
 
-    // MODIFIED: Use mangled name for user-defined procedure calls
-    SymbolEntry* entry = symbolTable->lookupSymbol(procName);
-    if (!entry) throw std::runtime_error("CodeGen: Procedure not found: " + procName);
+    if (!node.resolved_entry) {
+        throw std::runtime_error("CodeGen Error: Procedure call to '" + procName + "' was not resolved by semantic analyzer.");
+    }
 
-    std::string mangledName = entry->getMangledName();
-
+    std::string mangledName = node.resolved_entry->getMangledName();
     if (node.arguments) {
         auto& exprs = node.arguments->expressions;
         for (auto it = exprs.rbegin(); it != exprs.rend(); ++it) (*it)->accept(*this);
     }
     emit("pusha", mangledName);
     emit("call");
-    if (entry->numParameters > 0) emit("pop", std::to_string(entry->numParameters));
+    if (node.resolved_entry->numParameters > 0) {
+        emit("pop", std::to_string(node.resolved_entry->numParameters));
+    }
 }
 
 void CodeGenerator::visit(FunctionCallExprNode& node) {
-    const std::string& funcName = node.funcName->name;
-    SymbolEntry* entry = symbolTable->lookupSymbol(funcName);
-    if (!entry) throw std::runtime_error("CodeGen: Function not found: " + funcName);
-
-    // MODIFIED: Use mangled name for user-defined function calls
-    std::string mangledName = entry->getMangledName();
-
+    if (!node.resolved_entry) {
+        throw std::runtime_error("CodeGen Error: Function call to '" + node.funcName->name + "' was not resolved by semantic analyzer.");
+    }
+    std::string mangledName = node.resolved_entry->getMangledName();
     emit("pushn", "1");
     if (node.arguments) {
         auto& exprs = node.arguments->expressions;
@@ -328,17 +374,22 @@ void CodeGenerator::visit(FunctionCallExprNode& node) {
     }
     emit("pusha", mangledName);
     emit("call");
-    if (entry->numParameters > 0) emit("pop", std::to_string(entry->numParameters));
+    if (node.resolved_entry->numParameters > 0) {
+        emit("pop", std::to_string(node.resolved_entry->numParameters));
+    }
 }
 
+// MODIFIED: Corrected logic to use the new context pointer 'currentSubprogramEntry'
 void CodeGenerator::visit(ReturnStatementNode& node) {
     if (node.returnValue) {
-        if (!currentFunctionContext) throw std::runtime_error("CodeGen: Return statement outside function.");
-        SymbolEntry* funcEntry = symbolTable->lookupSymbol(currentFunctionContext->name->name);
-        if (!funcEntry) throw std::runtime_error("CodeGen: Could not find function entry for return.");
-        int num_params = funcEntry->numParameters;
+        if (!currentSubprogramEntry) {
+            throw std::runtime_error("CodeGen: Return statement found with no subprogram context.");
+        }
+
+        int num_params = currentSubprogramEntry->numParameters;
         node.returnValue->accept(*this);
-        if (funcEntry->functionReturnType == EntryTypeCategory::PRIMITIVE_REAL && node.returnValue->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
+
+        if (currentSubprogramEntry->functionReturnType == EntryTypeCategory::PRIMITIVE_REAL && node.returnValue->determinedType == EntryTypeCategory::PRIMITIVE_INTEGER) {
             emit("itof");
         }
         emit("storel", std::to_string(-(num_params + 1)));

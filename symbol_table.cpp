@@ -56,6 +56,7 @@ SymbolEntry::SymbolEntry(std::string proc_name,
     arrayDetails.isInitialized = false;
 }
 
+
 std::string SymbolEntry::toString() const {
     std::stringstream ss;
     ss << "'" << name << "' (" << symbolKindToString(kind) << ")";
@@ -95,20 +96,16 @@ std::string SymbolEntry::toString() const {
 
 std::string SymbolEntry::getMangledName() const {
     if (kind != SymbolKind::FUNCTION && kind != SymbolKind::PROCEDURE) {
-        return name; // Return original name if not a subprogram
+        return name;
     }
-
     std::stringstream mangledName;
-
     if (kind == SymbolKind::FUNCTION) {
         mangledName << "f_";
     }
-    else { // PROCEDURE
+    else {
         mangledName << "p_";
     }
-
     mangledName << name;
-
     for (const auto& param : formalParameterSignature) {
         mangledName << "_";
         switch (param.first) {
@@ -121,6 +118,7 @@ std::string SymbolEntry::getMangledName() const {
     }
     return mangledName.str();
 }
+
 
 SymbolTable::SymbolTable() : currentLevel(-1) {
     enterScope();
@@ -149,33 +147,49 @@ int SymbolTable::getCurrentLevel() const {
     return currentLevel;
 }
 
+// This function supports overloading by using a mangled name as the key for subprograms.
 bool SymbolTable::addSymbol(const SymbolEntry& entry) {
     if (scopeStack.empty()) {
         std::cerr << "Error: No current scope to add symbol '" << entry.name << "'." << std::endl;
         return false;
     }
+
     Scope& currentScope = scopeStack.back();
-    if (currentScope.count(entry.name)) {
+
+    // For functions/procedures, use a mangled name as the key to allow overloading.
+    // For all other symbols (variables, etc.), use the simple name.
+    std::string key = (entry.kind == SymbolKind::FUNCTION || entry.kind == SymbolKind::PROCEDURE)
+        ? entry.getMangledName()
+        : entry.name;
+
+    // Check if a symbol with this key (be it mangled or simple) already exists.
+    if (currentScope.count(key)) {
+        // This now correctly detects redeclarations of variables with the same name,
+        // or subprograms with the exact same signature.
         return false;
     }
-    currentScope[entry.name] = entry;
+
+    // Add the entry to the map using the unique key.
+    currentScope[key] = entry;
     return true;
 }
 
 SymbolEntry* SymbolTable::lookupSymbol(const std::string& name) {
     if (scopeStack.empty()) return nullptr;
-    for (auto list_iter = std::prev(scopeStack.end()); ; ) {
-        Scope& scope = *list_iter;
+    // NOTE: This function is now only suitable for looking up non-overloaded symbols like variables.
+    // The SemanticAnalyzer will need a more advanced way to look up subprograms.
+    for (auto list_iter = std::prev(scopeStack.end()); ; /* decrement inside */) {
+        Scope& scope = *list_iter; // Non-const reference
         auto foundEntry = scope.find(name);
         if (foundEntry != scope.end()) {
             return &(foundEntry->second);
         }
-        if (list_iter == scopeStack.begin()) {
+        if (list_iter == scopeStack.begin()) { // Checked the global scope
             break;
         }
-        --list_iter;
+        --list_iter; // Move to previous scope
     }
-    return nullptr;
+    return nullptr; // Not found in any scope
 }
 
 SymbolEntry* SymbolTable::lookupSymbolInCurrentScope(const std::string& name) {

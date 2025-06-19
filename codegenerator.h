@@ -2,7 +2,7 @@
 #define CODEGENERATOR_H
 
 #include "ast.h"
-#include "semantic_analyzer.h"
+#include "semantic_analyzer.h" 
 #include "symbol_table.h" 
 #include <string>
 #include <vector>
@@ -18,6 +18,8 @@ private:
     int labelCounter = 0;
     SymbolTable* symbolTable = nullptr;
     SubprogramHead* currentFunctionContext = nullptr;
+    // ADDED: A pointer to the symbol entry for the current subprogram being generated.
+    SymbolEntry* currentSubprogramEntry = nullptr;
 
     int local_offset = 0;
     int param_offset = 0;

@@ -10,6 +10,10 @@
 #include "semantic_visitor.h"
 #include "semantic_types.h"
 
+// Forward-declare SymbolEntry to avoid circular dependencies
+// This allows us to use SymbolEntry* pointers in the AST nodes.
+class SymbolEntry;
+
 // --- Base Node Class ---
 class Node {
 public:
@@ -309,6 +313,8 @@ class ProcedureCallStatementNode : public StatementNode {
 public:
     IdentNode* procName;
     ExpressionList* arguments;
+    // ADDED: A pointer to the specific procedure overload resolved by the semantic analyzer.
+    SymbolEntry* resolved_entry = nullptr;
     ProcedureCallStatementNode(IdentNode* name, ExpressionList* args, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
     void accept(SemanticVisitor& visitor) override;
@@ -317,7 +323,6 @@ public:
 class IdExprNode : public ExprNode {
 public:
     IdentNode* ident;
-    // Added for semantic analysis info
     int offset;
     SymbolKind kind;
     SymbolScope scope;
@@ -330,6 +335,8 @@ class FunctionCallExprNode : public ExprNode {
 public:
     IdentNode* funcName;
     ExpressionList* arguments;
+    // ADDED: A pointer to the specific function overload resolved by the semantic analyzer.
+    SymbolEntry* resolved_entry = nullptr;
     FunctionCallExprNode(IdentNode* name, ExpressionList* args, int l, int c);
     void print(std::ostream& out, int indentLevel = 0) const override;
     void accept(SemanticVisitor& visitor) override;

@@ -3,15 +3,16 @@
 
 #include "semantic_visitor.h"
 #include "symbol_table.h" 
-#include "ast.h"          // For FunctionHeadNode pointer and other AST Node definitions
+#include "ast.h"          
 #include <vector>
 #include <string>
-#include <iostream>       // For std::ostream in printErrors
+#include <iostream>
 
 class SemanticAnalyzer : public SemanticVisitor {
 private:
     SymbolTable symbolTable;
-    FunctionHeadNode* currentFunctionContext; 
+    FunctionHeadNode* currentFunctionContext;
+    SymbolEntry* currentSubprogramEntry = nullptr;
     std::vector<std::string> semanticErrors;
     int global_offset = 0;
     int local_offset = 0;
@@ -21,16 +22,16 @@ private:
     EntryTypeCategory astToSymbolType(TypeNode* astTypeNode, ArrayDetails& outArrayDetails);
     EntryTypeCategory astStandardTypeToSymbolType(StandardTypeNode* astStandardTypeNode);
 
-    // Helper for checking if a type is printable for write/writeln
-    bool isPrintableType(EntryTypeCategory type, ExprNode* argNode); // Added argNode to check for StringLiteralNode
-    // Helper for checking if a type is readable for read/readln
+    bool isPrintableType(EntryTypeCategory type, ExprNode* argNode);
     bool isReadableType(EntryTypeCategory type);
 
+    std::string buildMangledName(const std::string& name, SymbolKind kind, ExpressionList* args);
 
 public:
     SemanticAnalyzer();
     SymbolTable& getSymbolTable() { return symbolTable; }
 
+    // Visitor overrides
     void visit(ProgramNode& node) override;
     void visit(IdentifierList& node) override;
     void visit(IdentNode& node) override;
@@ -51,7 +52,7 @@ public:
     void visit(IfStatementNode& node) override;
     void visit(WhileStatementNode& node) override;
     void visit(VariableNode& node) override;
-    void visit(ProcedureCallStatementNode& node) override; // Will have specific logic for built-ins
+    void visit(ProcedureCallStatementNode& node) override;
     void visit(ExpressionList& node) override;
     void visit(IntNumNode& node) override;
     void visit(RealNumNode& node) override;
@@ -59,7 +60,7 @@ public:
     void visit(StringLiteralNode& node) override;
     void visit(BinaryOpNode& node) override;
     void visit(UnaryOpNode& node) override;
-    void visit(IdExprNode& node) override; 
+    void visit(IdExprNode& node) override;
     void visit(FunctionCallExprNode& node) override;
     void visit(ReturnStatementNode& node) override;
 
