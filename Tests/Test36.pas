@@ -15,7 +15,6 @@ BEGIN
   RETURN val * 2;
 END;
 
-// This is no longer an error. The compiler stores this with the key "f_Process_r".
 FUNCTION Process(val: REAL): REAL;
 BEGIN
   RETURN val * 2.0;
